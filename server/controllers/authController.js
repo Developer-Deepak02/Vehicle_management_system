@@ -6,7 +6,7 @@ import { sendEmail } from "../utils/sendEmail.js";
 const genrateToken = (id) => {
 	return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
-
+// register
 export const registerUser = async (req, res) => {
 	const { name, email, password } = req.body;
 	try {
@@ -17,7 +17,7 @@ export const registerUser = async (req, res) => {
 		// hash password
 		const hashPassword = await bcrypt.hash(password, 10);
 		// saving user
-		const user = User.create({ name, email, password: hashPassword });
+		const user = await User.create({ name, email, password: hashPassword });
 		if (user) {
 			const otp = Math.floor(100000 + Math.random() * 900000).toString();
 			const message = `welcome to VMS ,${name} . thank you for choosing us . ${otp} is your otp to compleate the registration`;
@@ -40,5 +40,36 @@ export const registerUser = async (req, res) => {
 	} catch (error) {
 		console.error(error);
 		res.status(400).json({ message: error.message });
+	}
+};
+
+//login
+export const loginUser = async (req, res) => {
+	const { email, password } = req.body;
+	try {
+		const user = await User.findOne({ email });
+		if (user && (await bcrypt.compare(password, user.password))) {
+			res.json({
+				_id: user._id,
+				name: user.name,
+				email: user.email,
+				role: user.role,
+				token: genrateToken(user._id),
+			});
+		} else {
+			res.status(400).json({ message: "Invalid email or password" });
+		}
+	} catch (error) {
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+// get users
+export const getUsers = async (req, res) => {
+	try {
+		const users = await User.find({}).select("-password");
+		res.json(users);
+	} catch (error) {
+		res.status(500).json({ message: "Server error" });
 	}
 };
