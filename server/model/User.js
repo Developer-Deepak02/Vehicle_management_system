@@ -33,10 +33,15 @@ const userSchema = new mongoose.Schema({
 		default: null,
 		require: true,
 	},
-	lastLogin: {
+	passwordResetVerified: {
+		type: Boolean,
+		default: false,
+	},
+	passwordResetExpires: {
 		type: Date,
 		default: null,
-	},
+		require: true,
+	}
 });
 
 export default mongoose.model("User", userSchema);
