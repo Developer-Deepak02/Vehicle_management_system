@@ -10,13 +10,14 @@ import {
 	resetPassword,
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { admin } from "../middleware/adminMiddleware.js";
+import { admin , manager} from "../middleware/adminMiddleware.js";
 
 const router = express.Router();
 // auth routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.get("/users", protect, admin, getUsers);
+router.get("/manager-users", protect, manager, getUsers);
 // verify otp and resend otp routes
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);

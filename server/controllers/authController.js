@@ -53,6 +53,7 @@ export const registerUser = async (req, res) => {
 				email: user.email,
 				role: user.role,
 				isVerified: user.isVerified,
+				token: generateToken(user._id),
 			});
 		} else {
 			res.status(400).json({ message: "Invalid user data" });
@@ -87,6 +88,7 @@ export const loginUser = async (req, res) => {
 			email: user.email,
 			role: user.role,
 			isVerified: user.isVerified,
+			token: generateToken(user._id),
 		});
 	} catch (error) {
 		res.status(500).json({ message: "Server error" });
@@ -96,7 +98,9 @@ export const loginUser = async (req, res) => {
 // get users
 export const getUsers = async (req, res) => {
 	try {
-		const users = await User.find({}).select("-password -otp -otpExpiry");
+		const users = await User.find({}).select(
+			"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
+		);
 		res.json(users);
 	} catch (error) {
 		res.status(500).json({ message: "Server error" });
