@@ -95,18 +95,6 @@ export const loginUser = async (req, res) => {
 	}
 };
 
-// get users
-export const getUsers = async (req, res) => {
-	try {
-		const users = await User.find({}).select(
-			"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
-		);
-		res.json(users);
-	} catch (error) {
-		res.status(500).json({ message: "Server error" });
-	}
-};
-
 //  verifyOtp
 export const verifyOtp = async (req, res) => {
 	const { email, otp } = req.body;

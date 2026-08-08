@@ -6,6 +6,17 @@ export const admin = (req, res, next) => {
 	}
 };
 
+export const adminAndManager = (req, res, next) => {
+	if (
+		(req.user && req.user.role === "admin") ||
+		(req.user && req.user.role === "manager")
+	) {
+		next();
+	} else {
+		res.status(403).json({ message: "access denied , admin or manager only" });
+	}
+};
+
 export const manager = (req, res, next) => {
 	if (req.user && req.user.role === "manager") {
 		next();
