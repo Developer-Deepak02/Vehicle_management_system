@@ -37,6 +37,7 @@ export const registerUser = async (req, res) => {
 			password: hashPassword,
 			otp: otp,
 			otpExpiry: otpExpiry,
+			joinedOn: Date.now(),
 		});
 		if (user) {
 			const message = `welcome to VMS ,${name} . thank you for choosing us . ${otp} is your otp to compleate the registration process , please use this to verify your email. your otp will expire in 5 minutes`;
@@ -81,6 +82,9 @@ export const loginUser = async (req, res) => {
 			return res
 				.status(401)
 				.json({ message: "user not verified , please verify your email" });
+		}
+		if (!user.active) {
+			return res.status(403).json({ message: "user is deactivated , contact admin" });
 		}
 		res.status(200).json({
 			_id: user._id,
