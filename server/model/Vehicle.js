@@ -24,7 +24,7 @@ const vehicleSchema = new mongoose.Schema({
 
 	vehicleType: {
 		type: String,
-		enum: ["LTV", "HTV"],
+		enum: ["LMV", "HMV"],
 		required: true,
 	},
 
@@ -57,8 +57,8 @@ const vehicleSchema = new mongoose.Schema({
 
 	status: {
 		type: String,
-		enum: ["active", "inactive"],
-		default: "active",
+		enum: ["available", "assigned"],
+		default: "available",
 	},
 
 	// =========================

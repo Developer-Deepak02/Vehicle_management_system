@@ -117,6 +117,7 @@ export const createManager = async (req, res) => {
 	}
 };
 
+//create driver
 export const createDriver = async (req, res) => {
 	try {
 		const { name, email, password } = req.body;

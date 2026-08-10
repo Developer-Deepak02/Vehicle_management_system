@@ -10,7 +10,6 @@ import {
 } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { admin , manager} from "../middleware/adminMiddleware.js";
-
 const router = express.Router();
 // auth routes
 router.post("/register", registerUser);
