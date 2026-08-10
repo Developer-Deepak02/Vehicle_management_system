@@ -1,3 +1,4 @@
+import User from "../model/User.js";
 import Vehicle from "../model/Vehicle.js";
 
 // create a new vehicle
@@ -136,6 +137,67 @@ export const deleteVehicle = async (req, res) => {
 		}
 		await vehicle.deleteOne();
 		res.status(200).json({ message: "Vehicle deleted successfully" });
+	} catch (error) {
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+// get available vehicles
+export const getAvailableVehicles = async (req, res) => {
+	try {
+		const vehicles = await Vehicle.find({
+			status: "available",
+		});
+		res.status(200).json(vehicles);
+	} catch (error) {
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+// assign vehicle
+
+export const assignVehicle = async (req, res) => {
+	try {
+		const vehicleId = req.params.id;
+		const { driverId } = req.body;
+		const vehicle = await Vehicle.findById(vehicleId);
+		if (!vehicle) {
+			return res.status(404).json({ message: "Vehicle not found" });
+		}
+		const driver = await User.findById(driverId);
+		if (!driver) {
+			return res.status(404).json({ message: "Driver not found" });
+		}
+		if (driver.role !== "driver") {
+			return res
+				.status(400)
+				.json({ message: "Vehicle must be assigned to a driver" });
+		}
+		if (driver.vehicleAssigned) {
+			return res
+				.status(400)
+				.json({ message: "Driver already has a vehicle assigned" });
+		}
+		if (!driver.active) {
+			return res.status(400).json({ message: "Driver is inactive" });
+		}
+		if (!driver.isVerified) {
+			return res.status(400).json({ message: "Driver is not verified" });
+		}
+		if (vehicle.status === "assigned") {
+			return res.status(400).json({ message: "Vehicle is already assigned" });
+		}
+		vehicle.driverAssigned = driver._id;
+		vehicle.driverAssignedOn = Date.now();
+		vehicle.status = "assigned";
+		driver.vehicleAssigned = vehicle._id;
+		driver.vehicleAssignedOn = Date.now();
+		await vehicle.save();
+		await driver.save();
+		return res.status(200).json({
+			message: "Vehicle assigned successfully",
+			vehicle,
+		});
 	} catch (error) {
 		res.status(500).json({ message: "Server error" });
 	}

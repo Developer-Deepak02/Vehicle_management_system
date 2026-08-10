@@ -245,11 +245,26 @@ export const deleteUser = async (req, res) => {
 				.status(400)
 				.json({ message: "You cannot delete your own account" });
 		}
-    await user.deleteOne();
-    res.status(200).json({
+		await user.deleteOne();
+		res.status(200).json({
 			message: "User deleted successfully",
 		});
 	} catch (error) {
+		return res.status(500).json({ message: "server error" });
+	}
+};
+
+// get available drivers
+export const getAvailableDrivers = async (req, res) => {
+	try {
+		const user = await User.find({
+			role: "driver",
+			active: true,
+			isVerified: true,
+		}).select("-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires");
+		res.status(200).json(user);
+	} catch (error) {
+		console.log("getAvailableDrivers error:", error);
 		return res.status(500).json({ message: "server error" });
 	}
 };
