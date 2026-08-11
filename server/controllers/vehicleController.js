@@ -202,3 +202,53 @@ export const assignVehicle = async (req, res) => {
 		res.status(500).json({ message: "Server error" });
 	}
 };
+
+export const getMyVehicle = async (req, res) => {
+	try {
+		const user = await User.findById(req.user._id).populate("vehicleAssigned");
+		if (!user) {
+			return res.status(404).json({ message: "User not found" });
+		}
+		if (!user.vehicleAssigned) {
+			return res
+				.status(404)
+				.json({ message: "No vehicle assigned to this driver" });
+		}
+		res.status(200).json(user.vehicleAssigned);
+	} catch (error) {
+		console.error("getMyVehicle error:", error);
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+// unassign vehicle
+export const unassignVehicle = async (req, res) => {
+	try {
+		const vehicleId = req.params.id;
+		const vehicle = await Vehicle.findById(vehicleId);
+		if (!vehicle) {
+			return res.status(404).json({ message: "Vehicle not found" });
+		}
+    if(!vehicle.driverAssigned){
+      return res.status(400).json({ message: "Vehicle is not assigned" });
+    }
+    const driver = await User.findById(vehicle.driverAssigned);
+		if(!driver){
+      return res.status(404).json({ message: "Driver not found" });
+    }
+    vehicle.driverAssigned = null;
+		vehicle.driverAssignedOn = null;
+		vehicle.status = "available";
+
+    driver.vehicleAssigned = null;
+		driver.vehicleAssignedOn = null;
+		await vehicle.save();
+    await driver.save();
+    return res.status(200).json({
+			message: "Vehicle unassigned successfully",
+			vehicle,
+		});
+	} catch (error) {
+		res.status(500).json({ message: "Server error" });
+	}
+};

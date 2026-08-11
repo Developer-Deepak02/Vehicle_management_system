@@ -261,10 +261,32 @@ export const getAvailableDrivers = async (req, res) => {
 			role: "driver",
 			active: true,
 			isVerified: true,
-		}).select("-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires");
+		}).select(
+			"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
+		);
 		res.status(200).json(user);
 	} catch (error) {
 		console.log("getAvailableDrivers error:", error);
 		return res.status(500).json({ message: "server error" });
+	}
+};
+
+// get driver
+export const getDriver = async (req, res) => {
+	try {
+		const driver = await User.findById(req.params.id)
+			.select(
+				"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
+			)
+			.populate("vehicleAssigned");
+		if (!driver) {
+			return res.status(404).json({ message: "Driver not found" });
+		}
+		if(driver.role!=="driver"){
+			return res.status(403).json({ message: "User is not a driver" });
+		}
+		res.status(200).json(driver);
+	} catch (error) {
+		res.status(500).json({ message: "Server error" });
 	}
 };
