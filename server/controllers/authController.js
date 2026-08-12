@@ -3,6 +3,11 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { sendEmail } from "../utils/sendEmail.js";
 import { generateOtp } from "../utils/generateOtp.js";
+import {
+	registrationOtpEmail,
+	resendRegistrationOtpEmail,
+	passwordResetOtpEmail,
+} from "../templates/emailTemplates.js";
 
 const generateToken = (id) => {
 	return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -40,21 +45,16 @@ export const registerUser = async (req, res) => {
 			joinedOn: Date.now(),
 		});
 		if (user) {
-			const message = `welcome to VMS ,${name} . thank you for choosing us . ${otp} is your otp to compleate the registration process , please use this to verify your email. your otp will expire in 5 minutes`;
-			// console.log(`sending email to ${email} with message: ${message}`);
-			await sendEmail(
-				email,
-				"welcome to VMS - your OTP for registration ",
-				message,
-			);
-			// console.log("email sent successfully");
+			// sending email
+			const emailContent = registrationOtpEmail(name, otp);
+			await sendEmail(email, emailContent.subject, emailContent.text);
 			res.status(201).json({
 				_id: user._id,
 				name: user.name,
 				email: user.email,
 				role: user.role,
 				isVerified: user.isVerified,
-				token: generateToken(user._id),
+				message: "Registration successful. Please verify your email.",
 			});
 		} else {
 			res.status(400).json({ message: "Invalid user data" });
@@ -84,7 +84,9 @@ export const loginUser = async (req, res) => {
 				.json({ message: "user not verified , please verify your email" });
 		}
 		if (!user.active) {
-			return res.status(403).json({ message: "user is deactivated , contact admin" });
+			return res
+				.status(403)
+				.json({ message: "user is deactivated , contact admin" });
 		}
 		res.status(200).json({
 			_id: user._id,
@@ -108,13 +110,14 @@ export const verifyOtp = async (req, res) => {
 			user.isVerified = true;
 			user.otp = null;
 			user.otpExpiry = null;
+			user.active = true;
 			await user.save();
 			const token = generateToken(user._id);
-			res.status(200).json({ message: "otp verified successfully" });
+			res.status(200).json({ message: "otp verified successfully", token});
 		} else if (!user) {
 			return res.status(404).json({ message: "user not found" });
 		} else {
-			return res.status(400).json({ message: "invalid otp" });
+			return res.status(400).json({ message: "Invalid or expired OTP" });
 		}
 	} catch (error) {
 		res.status(500).json({ message: "server error" });
@@ -139,9 +142,9 @@ export const resendOtp = async (req, res) => {
 		user.otp = otp;
 		user.otpExpiry = otpExpiry;
 		await user.save();
-		const message = `your new otp is ${otp} , please use this to verify your email`;
-		await sendEmail(email, "VMS - your new OTP for verification", message);
-		res.status(200).json({ message: "otp resent successfully" });
+		const emailContent = resendRegistrationOtpEmail(otp);
+		await sendEmail(email, emailContent.subject, emailContent.text);
+		return res.status(200).json({ message: "otp resent successfully" });
 	} catch (error) {
 		console.error(error);
 		res.status(500).json({ message: "server error" });
@@ -164,8 +167,8 @@ export const forgotPassword = async (req, res) => {
 
 		await user.save();
 		// send email with otp
-		const message = `your otp for password reset is ${otp} , please use this to reset your password. your otp will expire in 10 minutes`;
-		await sendEmail(email, "VMS - your OTP for password reset", message);
+		const emailContent = passwordResetOtpEmail(otp);
+		await sendEmail(email, emailContent.subject, emailContent.text);
 		res.status(200).json({ message: "otp sent successfully" });
 	} catch (error) {
 		console.error(error);
@@ -222,8 +225,10 @@ export const resetPassword = async (req, res) => {
 		if (!user.passwordResetVerified) {
 			return res.status(400).json({ message: "otp not verified" });
 		}
-		if (user.passwordResetExpires < Date.now()) {
-			return res.status(400).json({ message: "otp expired" });
+		if (!user.passwordResetExpires || user.passwordResetExpires < Date.now()) {
+			return res
+				.status(400)
+				.json({ message: "Password reset session expired" });
 		}
 		// hash the new password before saving
 		const hashPassword = await bcrypt.hash(

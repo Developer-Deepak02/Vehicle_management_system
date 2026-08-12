@@ -21,7 +21,9 @@ const userSchema = new mongoose.Schema({
 
 	password: {
 		type: String,
-		required: true,
+		required: function () {
+			return !this.invitationToken;
+		},
 	},
 
 	dateOfBirth: {
@@ -105,7 +107,19 @@ const userSchema = new mongoose.Schema({
 		type: Date,
 		default: null,
 	},
+	// =========================
+	// Invitation
+	// =========================
+	
+	invitationToken: {
+		type: String,
+		default: null,
+	},
 
+	invitationTokenExpires: {
+		type: Date,
+		default: null,
+	},
 	// =========================
 	// Password Reset
 	// =========================

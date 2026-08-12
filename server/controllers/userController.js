@@ -1,5 +1,11 @@
 import User from "../model/User.js";
 import bcrypt from "bcrypt";
+import crypto from "crypto";
+import {
+	managerInvitationEmail,
+	driverInvitationEmail,
+} from "../templates/emailTemplates.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 // get users
 export const getUsers = async (req, res) => {
@@ -77,16 +83,9 @@ export const updateCurrentUser = async (req, res) => {
 // create Manager
 export const createManager = async (req, res) => {
 	try {
-		const { name, email, password } = req.body;
-		if (!name || !email || !password) {
-			return res
-				.status(400)
-				.json({ message: "Name, email, and password are required" });
-		}
-		if (password.length < 6) {
-			return res
-				.status(400)
-				.json({ message: "password must be at least 6 characters" });
+		const { name, email } = req.body;
+		if (!name || !email) {
+			return res.status(400).json({ message: "Name and email are required" });
 		}
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
@@ -94,23 +93,24 @@ export const createManager = async (req, res) => {
 				.status(400)
 				.json({ message: "User with this email already exists" });
 		}
-		// hash the password before saving
-		const hashPassword = await bcrypt.hash(
-			password,
-			Number(process.env.BCRYPT_SALT_ROUNDS),
-		);
+		const invitationToken = crypto.randomBytes(32).toString("hex");
+		const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 		const user = new User({
 			name,
 			email,
-			password: hashPassword,
-			isVerified: true,
-			active: true,
+			isVerified: false,
+			active: false,
 			role: "manager",
+			invitationToken,
+			invitationTokenExpires,
 			createdBy: req.user._id,
-			joinedOn: Date.now(),
+			joinedOn: null,
 		});
 		await user.save();
-		res.status(201).json({ message: "Manager created successfully" });
+		const invitationLink = `http://localhost:3000/set-password?token=${invitationToken}`;
+		const emailContent = managerInvitationEmail(name, invitationLink);
+		await sendEmail(email, emailContent.subject, emailContent.text);
+		res.status(201).json({ message: "Manager invitation sent successfully" });
 	} catch (error) {
 		console.error("createManager error:", error);
 		res.status(500).json({ message: "Server error" });
@@ -120,43 +120,50 @@ export const createManager = async (req, res) => {
 //create driver
 export const createDriver = async (req, res) => {
 	try {
-		const { name, email, password } = req.body;
-		if (!name || !email || !password) {
-			return res
-				.status(400)
-				.json({ message: "Name, email, and password are required" });
-		}
-		if (password.length < 6) {
-			return res
-				.status(400)
-				.json({ message: "password must be at least 6 characters" });
+		const { name, email } = req.body;
+		if (!name || !email) {
+			return res.status(400).json({
+				message: "Name and email are required",
+			});
 		}
 		const existingUser = await User.findOne({ email });
 		if (existingUser) {
-			return res
-				.status(400)
-				.json({ message: "User with this email already exists" });
+			return res.status(400).json({
+				message: "User with this email already exists",
+			});
 		}
-		// hash password
-		const hashPassword = await bcrypt.hash(
-			password,
-			Number(process.env.BCRYPT_SALT_ROUNDS),
-		);
+		const invitationToken = crypto.randomBytes(32).toString("hex");
+		const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000,);
 		const user = new User({
 			name,
 			email,
-			password: hashPassword,
-			isVerified: true,
-			active: true,
 			role: "driver",
+			isVerified: false,
+			active: false,
+			invitationToken,
+			invitationTokenExpires,
 			createdBy: req.user._id,
-			joinedOn: Date.now(),
+			joinedOn: null,
 		});
 		await user.save();
-		res.status(201).json({ message: "driver created successfully" });
+		const invitationLink = `http://localhost:3000/set-password?token=${invitationToken}`;
+		const emailContent = driverInvitationEmail(
+			name,
+			invitationLink,
+		);
+		await sendEmail(
+			email,
+			emailContent.subject,
+			emailContent.text,
+		);
+		return res.status(201).json({
+			message: "Driver invitation sent successfully",
+		});
 	} catch (error) {
 		console.error("createDriver error:", error);
-		res.status(500).json({ message: "Server error" });
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
@@ -261,6 +268,7 @@ export const getAvailableDrivers = async (req, res) => {
 			role: "driver",
 			active: true,
 			isVerified: true,
+			vehicleAssigned: null,
 		}).select(
 			"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
 		);
@@ -282,11 +290,70 @@ export const getDriver = async (req, res) => {
 		if (!driver) {
 			return res.status(404).json({ message: "Driver not found" });
 		}
-		if(driver.role!=="driver"){
+		if (driver.role !== "driver") {
 			return res.status(403).json({ message: "User is not a driver" });
 		}
 		res.status(200).json(driver);
 	} catch (error) {
 		res.status(500).json({ message: "Server error" });
+	}
+};
+
+// accept manager/driver invitation
+export const acceptInvitation = async (req, res) => {
+	try {
+		const { token, password } = req.body;
+		if (!token || !password) {
+			return res.status(400).json({
+				message: "Token and password are required",
+			});
+		}
+		if (password.length < 6) {
+			return res.status(400).json({
+				message: "Password must be at least 6 characters",
+			});
+		}
+		const user = await User.findOne({
+			invitationToken: token,
+		});
+		if (!user) {
+			return res.status(404).json({
+				message: "Invalid invitation token",
+			});
+		}
+		if (
+			!user.invitationTokenExpires ||
+			user.invitationTokenExpires < Date.now()
+		) {
+			return res.status(400).json({
+				message: "Invitation link has expired",
+			});
+		}
+		if (user.isVerified || user.active) {
+			return res.status(400).json({
+				message: "Account has already been activated",
+			});
+		}
+		const hashPassword = await bcrypt.hash(
+			password,
+			Number(process.env.BCRYPT_SALT_ROUNDS),
+		);
+		user.password = hashPassword;
+		user.isVerified = true;
+		user.active = true;
+		user.joinedOn = Date.now();
+		// Invitation can only be used once
+		user.invitationToken = null;
+		user.invitationTokenExpires = null;
+
+		await user.save();
+		return res.status(200).json({
+			message: "Account activated successfully. You can now login.",
+		});
+	} catch (error) {
+		console.error("acceptInvitation error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
