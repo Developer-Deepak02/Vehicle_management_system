@@ -21,7 +21,7 @@ import {
 	unassignVehicle,
 } from "../controllers/vehicleController.js";
 
-router.post("/create-vehicle", protect, admin, createVehicle);
+router.post("/create-vehicle", protect, adminAndManager, createVehicle);
 router.get("/my-vehicle", protect, driver, getMyVehicle);
 router.get("/all-vehicles", protect, adminAndManager, getAllVehicles);
 router.get("/available-vehicle",protect, adminAndManager, getAvailableVehicles,);
