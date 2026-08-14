@@ -14,9 +14,10 @@ import {
 	activateDeactivate,
 	updateUser,
 	deleteUser,
-	getAvailableDrivers,
+	getDrivers,
 	getDriver,
 	acceptInvitation,
+	changePassword,
 } from "../controllers/userController.js";
 
 const router = express.Router();
@@ -26,11 +27,12 @@ router.get("/me", protect, getCurrentUser);
 router.put("/update-me", protect, updateCurrentUser);
 router.post("/create-manager", protect, admin, createManager);
 router.post("/create-driver", protect, adminAndManager, createDriver);
-router.get("/available-drivers", protect, adminAndManager, getAvailableDrivers);
+router.get("/available-drivers", protect, adminAndManager, getDrivers);
 router.get("/drivers/:id", protect, adminAndManager, getDriver);
 router.patch("/status/:id", protect, adminAndManager, activateDeactivate);
 router.put("/update-user/:id" , protect, adminAndManager, updateUser);
 router.delete("/delete-user/:id", protect, admin, deleteUser);
 router.post("/accept-invitation", acceptInvitation);
+router.put("/change-password", protect, changePassword);
 
 export default router;

@@ -261,21 +261,50 @@ export const deleteUser = async (req, res) => {
 	}
 };
 
-// get available drivers
-export const getAvailableDrivers = async (req, res) => {
+export const getDrivers = async (req, res) => {
 	try {
-		const user = await User.find({
+		const { search, active, createdBy, page = 1, limit = 10 } = req.query;
+		const filter = {
 			role: "driver",
-			active: true,
-			isVerified: true,
-			vehicleAssigned: null,
-		}).select(
-			"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
-		);
-		res.status(200).json(user);
+		};
+		if (search) {
+			filter.$or = [
+				{ name: { $regex: search, $options: "i" } },
+				{ email: { $regex: search, $options: "i" } },
+			];
+		}
+		if (active !== undefined) {
+			filter.active = active === "true";
+		}
+		if (createdBy) {
+			filter.createdBy = createdBy;
+		}
+		const pageNumber = Number(page);
+		const limitNumber = Number(limit);
+		const skip = (pageNumber - 1) * limitNumber;
+		const totalDrivers = await User.countDocuments(filter);
+		const drivers = await User.find(filter)
+			.select(
+				"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
+			)
+			.sort({ updatedOn: -1 })
+			.skip(skip)
+			.limit(limitNumber);
+		const totalPages = Math.ceil(totalDrivers / limitNumber);
+		return res.status(200).json({
+			drivers,
+			pagination: {
+				currentPage: pageNumber,
+				limit: limitNumber,
+				totalDrivers,
+				totalPages,
+			},
+		});
 	} catch (error) {
-		console.log("getAvailableDrivers error:", error);
-		return res.status(500).json({ message: "server error" });
+		console.error("getDrivers error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
@@ -352,6 +381,65 @@ export const acceptInvitation = async (req, res) => {
 		});
 	} catch (error) {
 		console.error("acceptInvitation error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
+	}
+};
+
+// change password
+export const changePassword = async (req, res) => {
+	try {
+		const { oldPassword, newPassword, confirmPassword } = req.body;
+		if (!oldPassword || !newPassword || !confirmPassword) {
+			return res.status(400).json({
+				message: "All password fields are required",
+			});
+		}
+		if (newPassword.length < 6) {
+			return res.status(400).json({
+				message: "New password must be at least 6 characters",
+			});
+		}
+		if (newPassword !== confirmPassword) {
+			return res.status(400).json({
+				message: "New password and confirm password do not match",
+			});
+		}
+		const user = await User.findById(req.user._id);
+		if (!user) {
+			return res.status(404).json({
+				message: "User not found",
+			});
+		}
+		const isPasswordCorrect = await bcrypt.compare(
+			oldPassword,
+			user.password,
+		);
+		if (!isPasswordCorrect) {
+			return res.status(400).json({
+				message: "Old password is incorrect",
+			});
+		}
+	const isSamePassword = await bcrypt.compare(newPassword, user.password);
+	if (isSamePassword) {
+		return res.status(400).json({
+			message: "New password cannot be the same as old password",
+		});
+	}
+		const hashPassword = await bcrypt.hash(
+			newPassword,
+			Number(process.env.BCRYPT_SALT_ROUNDS),
+		);
+		user.password = hashPassword;
+		user.updatedOn = Date.now();
+		user.updatedBy = req.user._id;
+		await user.save();
+		return res.status(200).json({
+			message: "Password changed successfully",
+		});
+	} catch (error) {
+		console.error("changePassword error:", error);
 		return res.status(500).json({
 			message: "Server error",
 		});
