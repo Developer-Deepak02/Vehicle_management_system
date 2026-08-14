@@ -53,13 +53,57 @@ export const createVehicle = async (req, res) => {
 	}
 };
 
-// get all vehicle
+// get all vehicles
 export const getAllVehicles = async (req, res) => {
 	try {
-		const vehicles = await Vehicle.find();
-		res.status(200).json(vehicles);
+		const {
+			search,
+			status,
+			vehicleType,
+			page = 1,
+			limit = 10,
+		} = req.query;
+		const filter = {};
+		// Search by vehicle name, model, registration number or chassis number
+		if (search) {
+			filter.$or = [
+				{ vehicleName: { $regex: search, $options: "i" } },
+				{ vehicleModel: { $regex: search, $options: "i" } },
+				{ registrationNumber: { $regex: search, $options: "i" } },
+				{ chassisNumber: { $regex: search, $options: "i" } },
+			];
+		}
+		if (status) {
+			filter.status = status;
+		}
+		if (vehicleType) {
+			filter.vehicleType = vehicleType;
+		}
+		const pageNumber = Number(page);
+		const limitNumber = Number(limit);
+		const skip = (pageNumber - 1) * limitNumber;
+		const totalVehicles = await Vehicle.countDocuments(filter);
+		// Get vehicles
+		const vehicles = await Vehicle.find(filter)
+			.populate("driverAssigned", "name email")
+			.sort({ updatedOn: -1 })
+			.skip(skip)
+			.limit(limitNumber);
+		const totalPages = Math.ceil(totalVehicles / limitNumber);
+		return res.status(200).json({
+			vehicles,
+			pagination: {
+				currentPage: pageNumber,
+				limit: limitNumber,
+				totalVehicles,
+				totalPages,
+			},
+		});
 	} catch (error) {
-		res.status(500).json({ message: "Server error" });
+		console.error("getAllVehicles error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
@@ -203,6 +247,7 @@ export const assignVehicle = async (req, res) => {
 	}
 };
 
+// get my vehicle
 export const getMyVehicle = async (req, res) => {
 	try {
 		const user = await User.findById(req.user._id).populate("vehicleAssigned");
