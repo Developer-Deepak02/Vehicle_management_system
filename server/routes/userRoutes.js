@@ -27,7 +27,7 @@ router.get("/me", protect, getCurrentUser);
 router.put("/update-me", protect, updateCurrentUser);
 router.post("/create-manager", protect, admin, createManager);
 router.post("/create-driver", protect, adminAndManager, createDriver);
-router.get("/available-drivers", protect, adminAndManager, getDrivers);
+router.get("/drivers", protect, adminAndManager, getDrivers);
 router.get("/drivers/:id", protect, adminAndManager, getDriver);
 router.patch("/status/:id", protect, adminAndManager, activateDeactivate);
 router.put("/update-user/:id" , protect, adminAndManager, updateUser);

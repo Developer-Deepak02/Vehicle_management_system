@@ -61,6 +61,11 @@ const vehicleSchema = new mongoose.Schema({
 		default: "available",
 	},
 
+	active: {
+		type: Boolean,
+		default: true,
+	},
+
 	// =========================
 	// Driver Assignment
 	// =========================

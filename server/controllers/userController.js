@@ -10,17 +10,58 @@ import { sendEmail } from "../utils/sendEmail.js";
 // get users
 export const getUsers = async (req, res) => {
 	try {
-		const { role } = req.query;
-		let filter = {};
+		const {
+			search,
+			role,
+			active,
+			page = 1,
+			limit = 10,
+			sort = "newest",
+		} = req.query;
+		const filter = {};
+		// Search by name or email
+		if (search) {
+			filter.$or = [
+				{ name: { $regex: search, $options: "i" } },
+				{ email: { $regex: search, $options: "i" } },
+			];
+		}
 		if (role) {
 			filter.role = role;
 		}
-		const users = await User.find(filter).select(
-			"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
-		);
-		res.json(users);
+		if (active !== undefined) {
+			filter.active = active === "true";
+		}
+		const pageNumber = Number(page);
+		const limitNumber = Number(limit);
+		const skip = (pageNumber - 1) * limitNumber;
+		const sortOption =
+			sort === "oldest"
+				? { createdAt: 1 }
+				: { createdAt: -1 };
+		const totalUsers = await User.countDocuments(filter);
+		const users = await User.find(filter)
+			.select(
+				"-password -otp -otpExpiry -passwordResetVerified -passwordResetExpires",
+			)
+			.sort(sortOption)
+			.skip(skip)
+			.limit(limitNumber);
+		const totalPages = Math.ceil(totalUsers / limitNumber);
+		return res.status(200).json({
+			users,
+			pagination: {
+				currentPage: pageNumber,
+				limit: limitNumber,
+				totalUsers,
+				totalPages,
+			},
+		});
 	} catch (error) {
-		res.status(500).json({ message: "Server error" });
+		console.error("getUsers error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
@@ -261,9 +302,17 @@ export const deleteUser = async (req, res) => {
 	}
 };
 
+// get drivers
 export const getDrivers = async (req, res) => {
 	try {
-		const { search, active, createdBy, page = 1, limit = 10 } = req.query;
+		const {
+			search,
+			active,
+			createdBy,
+			available,
+			page = 1,
+			limit = 10,
+		} = req.query;
 		const filter = {
 			role: "driver",
 		};
@@ -278,6 +327,11 @@ export const getDrivers = async (req, res) => {
 		}
 		if (createdBy) {
 			filter.createdBy = createdBy;
+		}
+		if (available === "true") {
+			filter.vehicleAssigned = null;
+			filter.isVerified = true;
+			filter.active = true;
 		}
 		const pageNumber = Number(page);
 		const limitNumber = Number(limit);
@@ -308,7 +362,7 @@ export const getDrivers = async (req, res) => {
 	}
 };
 
-// get driver
+// get one driver
 export const getDriver = async (req, res) => {
 	try {
 		const driver = await User.findById(req.params.id)

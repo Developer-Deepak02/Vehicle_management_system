@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import User from "../model/User.js";
 import Vehicle from "../model/Vehicle.js";
 
@@ -60,6 +61,7 @@ export const getAllVehicles = async (req, res) => {
 			search,
 			status,
 			vehicleType,
+			active,
 			page = 1,
 			limit = 10,
 		} = req.query;
@@ -78,6 +80,9 @@ export const getAllVehicles = async (req, res) => {
 		}
 		if (vehicleType) {
 			filter.vehicleType = vehicleType;
+		}
+		if (active !== undefined) {
+			filter.active = active === "true";
 		}
 		const pageNumber = Number(page);
 		const limitNumber = Number(limit);
@@ -191,6 +196,7 @@ export const getAvailableVehicles = async (req, res) => {
 	try {
 		const vehicles = await Vehicle.find({
 			status: "available",
+			active: true,
 		});
 		res.status(200).json(vehicles);
 	} catch (error) {
@@ -202,48 +208,76 @@ export const getAvailableVehicles = async (req, res) => {
 
 export const assignVehicle = async (req, res) => {
 	try {
-		const vehicleId = req.params.id;
-		const { driverId } = req.body;
-		const vehicle = await Vehicle.findById(vehicleId);
-		if (!vehicle) {
-			return res.status(404).json({ message: "Vehicle not found" });
+		const session = await mongoose.startSession();
+		try {
+			session.startTransaction();
+			const vehicleId = req.params.id;
+			const { driverId } = req.body;
+			const vehicle = await Vehicle.findById(vehicleId).session(session);
+			if (!vehicle) {
+				throw new Error("Vehicle not found");
+			}
+			const driver = await User.findById(driverId).session(session);
+			if (!driver) {
+				throw new Error("Driver not found");
+			}
+			if (driver.role !== "driver") {
+				throw new Error("Vehicle must be assigned to a driver");
+			}
+			if (driver.vehicleAssigned) {
+				throw new Error("Driver already has a vehicle assigned");
+			}
+			if (!driver.active) {
+				throw new Error("Driver is inactive");
+			}
+			if (!driver.isVerified) {
+				throw new Error("Driver is not verified");
+			}
+			if (vehicle.status === "assigned") {
+				throw new Error("Vehicle is already assigned");
+			}
+			if (!vehicle.active) {
+				throw new Error("Vehicle is inactive");
+			}
+			vehicle.driverAssigned = driver._id;
+			vehicle.driverAssignedOn = Date.now();
+			vehicle.status = "assigned";
+			driver.vehicleAssigned = vehicle._id;
+			driver.vehicleAssignedOn = Date.now();
+			await vehicle.save({ session });
+			await driver.save({ session });
+			// Everything succeeded
+			await session.commitTransaction();
+			return res.status(200).json({
+				message: "Vehicle assigned successfully",
+				vehicle,
+			});
+		} catch (error) {
+			// Something failed → undo all changes
+			await session.abortTransaction();
+			console.error("assignVehicle transaction error:", error);
+			if (error.message === "Vehicle not found") {
+				return res.status(404).json({
+					message: error.message,
+				});
+			}
+			if (error.message === "Driver not found") {
+				return res.status(404).json({
+					message: error.message,
+				});
+			}
+			return res.status(400).json({
+				message: error.message,
+			});
+		} finally {
+			// Close session
+			await session.endSession();
 		}
-		const driver = await User.findById(driverId);
-		if (!driver) {
-			return res.status(404).json({ message: "Driver not found" });
-		}
-		if (driver.role !== "driver") {
-			return res
-				.status(400)
-				.json({ message: "Vehicle must be assigned to a driver" });
-		}
-		if (driver.vehicleAssigned) {
-			return res
-				.status(400)
-				.json({ message: "Driver already has a vehicle assigned" });
-		}
-		if (!driver.active) {
-			return res.status(400).json({ message: "Driver is inactive" });
-		}
-		if (!driver.isVerified) {
-			return res.status(400).json({ message: "Driver is not verified" });
-		}
-		if (vehicle.status === "assigned") {
-			return res.status(400).json({ message: "Vehicle is already assigned" });
-		}
-		vehicle.driverAssigned = driver._id;
-		vehicle.driverAssignedOn = Date.now();
-		vehicle.status = "assigned";
-		driver.vehicleAssigned = vehicle._id;
-		driver.vehicleAssignedOn = Date.now();
-		await vehicle.save();
-		await driver.save();
-		return res.status(200).json({
-			message: "Vehicle assigned successfully",
-			vehicle,
-		});
 	} catch (error) {
-		res.status(500).json({ message: "Server error" });
+		console.error("assignVehicle error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
@@ -269,31 +303,92 @@ export const getMyVehicle = async (req, res) => {
 // unassign vehicle
 export const unassignVehicle = async (req, res) => {
 	try {
-		const vehicleId = req.params.id;
-		const vehicle = await Vehicle.findById(vehicleId);
-		if (!vehicle) {
-			return res.status(404).json({ message: "Vehicle not found" });
+		const session = await mongoose.startSession();
+		try {
+			session.startTransaction();
+			const vehicleId = req.params.id;
+			const vehicle = await Vehicle.findById(vehicleId).session(session);
+			if (!vehicle) {
+				throw new Error("Vehicle not found");
+			}
+			if (!vehicle.driverAssigned) {
+				throw new Error("Vehicle is not assigned");
+			}
+			const driver = await User.findById(
+				vehicle.driverAssigned,
+			).session(session);
+			if (!driver) {
+				throw new Error("Assigned driver not found");
+			}
+			driver.vehicleAssigned = null;
+			driver.vehicleAssignedOn = null;
+			vehicle.driverAssigned = null;
+			vehicle.driverAssignedOn = null;
+			vehicle.status = "available";
+			await vehicle.save({ session });
+			await driver.save({ session });
+			await session.commitTransaction();
+			return res.status(200).json({
+				message: "Vehicle unassigned successfully",
+				vehicle,
+			});
+		} catch (error) {
+			await session.abortTransaction();
+			console.error(
+				"unassignVehicle transaction error:",
+				error,
+			);
+			if (
+				error.message === "Vehicle not found" ||
+				error.message === "Assigned driver not found"
+			) {
+				return res.status(404).json({
+					message: error.message,
+				});
+			}
+			return res.status(400).json({
+				message: error.message,
+			});
+		} finally {
+			await session.endSession();
 		}
-    if(!vehicle.driverAssigned){
-      return res.status(400).json({ message: "Vehicle is not assigned" });
-    }
-    const driver = await User.findById(vehicle.driverAssigned);
-		if(!driver){
-      return res.status(404).json({ message: "Driver not found" });
-    }
-    vehicle.driverAssigned = null;
-		vehicle.driverAssignedOn = null;
-		vehicle.status = "available";
+	} catch (error) {
+		console.error("unassignVehicle error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
+	}
+};
 
-    driver.vehicleAssigned = null;
-		driver.vehicleAssignedOn = null;
+// activate / deactivate vehicle
+export const activateDeactivateVehicle = async (req, res) => {
+	try {
+		const vehicle = await Vehicle.findById(req.params.id);
+		if (!vehicle) {
+			return res.status(404).json({
+				message: "Vehicle not found",
+			});
+		}
+		// Assigned vehicles cannot be deactivated
+		if (vehicle.status === "assigned" && vehicle.active) {
+			return res.status(400).json({
+				message: "Assigned vehicle cannot be deactivated. Unassign it first.",
+			});
+		}
+		vehicle.active = !vehicle.active;
+		vehicle.updatedOn = Date.now();
+		vehicle.updatedBy = req.user._id;
 		await vehicle.save();
-    await driver.save();
-    return res.status(200).json({
-			message: "Vehicle unassigned successfully",
+		return res.status(200).json({
+			message: vehicle.active
+				? "Vehicle activated successfully"
+				: "Vehicle deactivated successfully",
 			vehicle,
 		});
 	} catch (error) {
-		res.status(500).json({ message: "Server error" });
+		console.error("activateDeactivateVehicle error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
