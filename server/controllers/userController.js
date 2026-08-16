@@ -35,10 +35,7 @@ export const getUsers = async (req, res) => {
 		const pageNumber = Number(page);
 		const limitNumber = Number(limit);
 		const skip = (pageNumber - 1) * limitNumber;
-		const sortOption =
-			sort === "oldest"
-				? { createdAt: 1 }
-				: { createdAt: -1 };
+		const sortOption = sort === "oldest" ? { createdAt: 1 } : { createdAt: -1 };
 		const totalUsers = await User.countDocuments(filter);
 		const users = await User.find(filter)
 			.select(
@@ -80,6 +77,15 @@ export const getCurrentUser = async (req, res) => {
 			isVerified: user.isVerified,
 			dateOfBirth: user.dateOfBirth,
 			profilePicture: user.profilePicture,
+			// driver info
+			...(user.role === "driver" && {
+				drivingLicense: user.drivingLicense,
+				licenseExpiry: user.licenseExpiry,
+				driverAddress: user.driverAddress,
+				experience: user.experience,
+				vehicleAssigned: user.vehicleAssigned,
+				vehicleAssignedOn: user.vehicleAssignedOn,
+			}),
 		});
 	} catch (error) {
 		res.status(500).json({ message: "Server error" });
@@ -91,21 +97,44 @@ export const updateCurrentUser = async (req, res) => {
 	try {
 		const user = await User.findById(req.user._id);
 		if (!user) {
-			return res.status(404).json({ message: "User not found" });
+			return res.status(404).json({
+				message: "User not found",
+			});
 		}
-		if (req.body.name) {
+		// Common user fields
+		if (req.body.name !== undefined) {
 			user.name = req.body.name;
 		}
-		if (req.body.dateOfBirth) {
+		if (req.body.dateOfBirth !== undefined) {
 			user.dateOfBirth = req.body.dateOfBirth;
 		}
-		if (req.body.profilePicture) {
+		if (req.body.profilePicture !== undefined) {
 			user.profilePicture = req.body.profilePicture;
+		}
+		// Driver-specific fields
+		if (user.role === "driver") {
+			if (req.body.drivingLicense !== undefined) {
+				user.drivingLicense = req.body.drivingLicense;
+			}
+			if (req.body.licenseExpiry !== undefined) {
+				user.licenseExpiry = req.body.licenseExpiry;
+			}
+			if (req.body.driverAddress !== undefined) {
+				user.driverAddress = req.body.driverAddress;
+			}
+			if (req.body.experience !== undefined) {
+				if (Number(req.body.experience) < 0) {
+					return res.status(400).json({
+						message: "Experience cannot be negative",
+					});
+				}
+				user.experience = Number(req.body.experience);
+			}
 		}
 		user.updatedOn = Date.now();
 		user.updatedBy = req.user._id;
 		await user.save();
-		res.status(200).json({
+		return res.status(200).json({
 			_id: user._id,
 			name: user.name,
 			email: user.email,
@@ -113,11 +142,20 @@ export const updateCurrentUser = async (req, res) => {
 			isVerified: user.isVerified,
 			dateOfBirth: user.dateOfBirth,
 			profilePicture: user.profilePicture,
+			// Driver information
+			...(user.role === "driver" && {
+				drivingLicense: user.drivingLicense,
+				licenseExpiry: user.licenseExpiry,
+				driverAddress: user.driverAddress,
+				experience: user.experience,
+			}),
 			message: "Profile updated",
 		});
 	} catch (error) {
 		console.error("updateCurrentUser error:", error);
-		res.status(500).json({ message: "Server error" });
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
@@ -174,7 +212,7 @@ export const createDriver = async (req, res) => {
 			});
 		}
 		const invitationToken = crypto.randomBytes(32).toString("hex");
-		const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000,);
+		const invitationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 		const user = new User({
 			name,
 			email,
@@ -188,15 +226,8 @@ export const createDriver = async (req, res) => {
 		});
 		await user.save();
 		const invitationLink = `http://localhost:3000/set-password?token=${invitationToken}`;
-		const emailContent = driverInvitationEmail(
-			name,
-			invitationLink,
-		);
-		await sendEmail(
-			email,
-			emailContent.subject,
-			emailContent.text,
-		);
+		const emailContent = driverInvitationEmail(name, invitationLink);
+		await sendEmail(email, emailContent.subject, emailContent.text);
 		return res.status(201).json({
 			message: "Driver invitation sent successfully",
 		});
@@ -240,48 +271,65 @@ export const activateDeactivate = async (req, res) => {
 };
 
 // update another user
-
 export const updateUser = async (req, res) => {
 	try {
 		const user = await User.findById(req.params.id);
 		if (!user) {
-			return res.status(404).json({ message: "User not found" });
+			return res.status(404).json({
+				message: "User not found",
+			});
 		}
 		if (req.user.role === "manager" && user.role !== "driver") {
 			return res.status(403).json({
 				message: "Managers can only update drivers",
 			});
 		}
-		if (!req.body.name && !req.body.dateOfBirth) {
-			return res
-				.status(400)
-				.json({ message: "name and dateOfBirth are required" });
+		const { name, dateOfBirth, driverAddress } = req.body;
+		if (
+			name === undefined &&
+			dateOfBirth === undefined &&
+			driverAddress === undefined
+		) {
+			return res.status(400).json({
+				message: "Please provide a field to update",
+			});
 		}
-		if (req.body.name) {
-			user.name = req.body.name;
+		if (name !== undefined) {
+			user.name = name;
 		}
-		if (req.body.dateOfBirth) {
-			user.dateOfBirth = req.body.dateOfBirth;
+		if (dateOfBirth !== undefined) {
+			user.dateOfBirth = dateOfBirth;
+		}
+		if (driverAddress !== undefined) {
+			if (user.role !== "driver") {
+				return res.status(400).json({
+					message: "Driver address can only be updated for drivers",
+				});
+			}
+			user.driverAddress = driverAddress;
 		}
 		user.updatedOn = Date.now();
 		user.updatedBy = req.user._id;
 		await user.save();
-		res.status(200).json({
+		return res.status(200).json({
 			_id: user._id,
 			name: user.name,
 			email: user.email,
 			role: user.role,
 			isVerified: user.isVerified,
 			dateOfBirth: user.dateOfBirth,
+			driverAddress: user.driverAddress,
 			message: "Profile updated",
 		});
 	} catch (error) {
-		res.status(500).json({ message: "Server error" });
+		console.error("updateUser error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
 // delete user
-
 export const deleteUser = async (req, res) => {
 	try {
 		const user = await User.findById(req.params.id);
@@ -466,21 +514,18 @@ export const changePassword = async (req, res) => {
 				message: "User not found",
 			});
 		}
-		const isPasswordCorrect = await bcrypt.compare(
-			oldPassword,
-			user.password,
-		);
+		const isPasswordCorrect = await bcrypt.compare(oldPassword, user.password);
 		if (!isPasswordCorrect) {
 			return res.status(400).json({
 				message: "Old password is incorrect",
 			});
 		}
-	const isSamePassword = await bcrypt.compare(newPassword, user.password);
-	if (isSamePassword) {
-		return res.status(400).json({
-			message: "New password cannot be the same as old password",
-		});
-	}
+		const isSamePassword = await bcrypt.compare(newPassword, user.password);
+		if (isSamePassword) {
+			return res.status(400).json({
+				message: "New password cannot be the same as old password",
+			});
+		}
 		const hashPassword = await bcrypt.hash(
 			newPassword,
 			Number(process.env.BCRYPT_SALT_ROUNDS),
