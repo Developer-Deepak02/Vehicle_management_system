@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import User from "../model/User.js";
 import Vehicle from "../model/Vehicle.js";
+import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 
 // create a new vehicle
 export const createVehicle = async (req, res) => {
@@ -10,7 +11,6 @@ export const createVehicle = async (req, res) => {
 			vehicleModel,
 			vehicleYear,
 			vehicleType,
-			vehiclePhoto,
 			vehicleDescription,
 			registrationNumber,
 			chassisNumber,
@@ -23,18 +23,34 @@ export const createVehicle = async (req, res) => {
 			!vehicleYear ||
 			!chassisNumber
 		) {
-			return res
-				.status(400)
-				.json({ message: "Please provide all required fields" });
+			return res.status(400).json({
+				message: "Please provide all required fields",
+			});
+		}
+		// At least one vehicle photo is required
+		if (!req.files || req.files.length === 0) {
+			return res.status(400).json({
+				message: "At least one vehicle photo is required",
+			});
 		}
 		const existingVehicle = await Vehicle.findOne({
 			$or: [{ registrationNumber }, { chassisNumber }],
 		});
 		if (existingVehicle) {
 			return res.status(400).json({
-				message: "registration number or chassis number already exists",
+				message: "Registration number or chassis number already exists",
 			});
 		}
+		// Upload all vehicle photos to Cloudinary
+		const uploadResults = await Promise.all(
+			req.files.map((file) =>
+				uploadToCloudinary(file.buffer, "vms/vehicle-photos"),
+			),
+		);
+		// Get only the Cloudinary URLs
+		const vehiclePhotos = uploadResults.map(
+			(result) => result.secure_url,
+		);
 		const vehicle = new Vehicle({
 			vehicleName,
 			vehicleModel,
@@ -42,15 +58,17 @@ export const createVehicle = async (req, res) => {
 			vehicleYear,
 			registrationNumber,
 			chassisNumber,
-			vehiclePhoto,
+			vehiclePhotos,
 			vehicleDescription,
 			createdBy: req.user._id,
 		});
 		await vehicle.save();
-
-		res.status(201).json(vehicle);
+		return res.status(201).json(vehicle);
 	} catch (error) {
-		res.status(500).json({ message: error.message });
+		console.error("createVehicle error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 
@@ -232,6 +250,9 @@ export const assignVehicle = async (req, res) => {
 			}
 			if (!driver.isVerified) {
 				throw new Error("Driver is not verified");
+			}
+			if (!driver.licenseVerified) {
+				throw new Error("Driver license is not verified");
 			}
 			if (vehicle.status === "assigned") {
 				throw new Error("Vehicle is already assigned");

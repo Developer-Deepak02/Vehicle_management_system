@@ -28,9 +28,16 @@ const vehicleSchema = new mongoose.Schema({
 		required: true,
 	},
 
-	vehiclePhoto: {
-		type: String,
+	vehiclePhotos: {
+	type: [String],
+	required: true,
+	validate: {
+		validator: function (photos) {
+			return photos.length >= 1 && photos.length <= 5;
+		},
+		message: "Vehicle must have between 1 and 5 photos",
 	},
+},
 
 	chassisNumber: {
 		type: String,

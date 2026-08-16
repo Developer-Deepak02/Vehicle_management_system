@@ -75,6 +75,21 @@ const userSchema = new mongoose.Schema({
 		type: Date,
 	},
 
+	drivingLicensePicture: {
+		type: String,
+		default: null,
+	},
+
+	licenseVerified: {
+		type: Boolean,
+		default: false,
+	},
+
+	licenseRejectionReason: {
+		type: String,
+		default: null,
+	},
+
 	driverAddress: {
 		type: String,
 	},
@@ -110,7 +125,7 @@ const userSchema = new mongoose.Schema({
 	// =========================
 	// Invitation
 	// =========================
-	
+
 	invitationToken: {
 		type: String,
 		default: null,

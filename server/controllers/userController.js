@@ -6,6 +6,7 @@ import {
 	driverInvitationEmail,
 } from "../templates/emailTemplates.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { uploadToCloudinary } from "../utils/uploadToCloudinary.js";
 
 // get users
 export const getUsers = async (req, res) => {
@@ -539,6 +540,163 @@ export const changePassword = async (req, res) => {
 		});
 	} catch (error) {
 		console.error("changePassword error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
+	}
+};
+
+// update profile picture
+export const updateProfilePicture = async (req, res) => {
+	try {
+		if (!req.file) {
+			return res.status(400).json({
+				message: "Profile picture is required",
+			});
+		}
+		const user = await User.findById(req.user._id);
+		if (!user) {
+			return res.status(404).json({
+				message: "User not found",
+			});
+		}
+		const result = await uploadToCloudinary(
+			req.file.buffer,
+			"vms/profile-pictures",
+		);
+		user.profilePicture = result.secure_url;
+		user.updatedOn = Date.now();
+		user.updatedBy = req.user._id;
+		await user.save();
+		return res.status(200).json({
+			message: "Profile picture updated successfully",
+			profilePicture: user.profilePicture,
+		});
+	} catch (error) {
+		console.error("updateProfilePicture error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
+	}
+};
+
+// submit driver license
+export const submitDriverLicense = async (req, res) => {
+	try {
+		const { drivingLicense, licenseExpiry } = req.body;
+		if (!drivingLicense || !licenseExpiry) {
+			return res.status(400).json({
+				message: "Driving license number and expiry date are required",
+			});
+		}
+		if (!req.file) {
+			return res.status(400).json({
+				message: "Driving license picture is required",
+			});
+		}
+		const user = await User.findById(req.user._id);
+		if (!user) {
+			return res.status(404).json({
+				message: "User not found",
+			});
+		}
+		if (user.role !== "driver") {
+			return res.status(403).json({
+				message: "Only drivers can submit a driving license",
+			});
+		}
+		const result = await uploadToCloudinary(
+			req.file.buffer,
+			"vms/driver-licenses",
+		);
+		user.drivingLicense = drivingLicense;
+		user.licenseExpiry = licenseExpiry;
+		user.drivingLicensePicture = result.secure_url;
+		// Every new submission must be reviewed again
+		user.licenseVerified = false;
+		user.licenseRejectionReason = null;
+		user.updatedOn = Date.now();
+		user.updatedBy = req.user._id;
+		await user.save();
+		return res.status(200).json({
+			message: "Driving license submitted successfully",
+			drivingLicense: user.drivingLicense,
+			licenseExpiry: user.licenseExpiry,
+			drivingLicensePicture: user.drivingLicensePicture,
+			licenseVerified: user.licenseVerified,
+		});
+	} catch (error) {
+		console.error("submitDriverLicense error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
+	}
+};
+
+// verify / reject driver license
+export const verifyDriverLicense = async (req, res) => {
+	try {
+		const { verified, rejectionReason } = req.body;
+		if (typeof verified !== "boolean") {
+			return res.status(400).json({
+				message: "verified must be true or false",
+			});
+		}
+		const user = await User.findById(req.params.id);
+		if (!user) {
+			return res.status(404).json({
+				message: "User not found",
+			});
+		}
+		if (user.role !== "driver") {
+			return res.status(400).json({
+				message: "Only driver licenses can be verified",
+			});
+		}
+		if (!user.drivingLicensePicture) {
+			return res.status(400).json({
+				message: "Driver has not uploaded a license picture",
+			});
+		}
+		if (!user.drivingLicense || !user.licenseExpiry) {
+			return res.status(400).json({
+				message: "Driver license information is incomplete",
+			});
+		}
+		// Approve license
+		if (verified === true) {
+			user.licenseVerified = true;
+			user.licenseRejectionReason = null;
+		}
+		// Reject license
+		if (verified === false) {
+			if (!rejectionReason) {
+				return res.status(400).json({
+					message: "Rejection reason is required",
+				});
+			}
+			user.licenseVerified = false;
+			user.licenseRejectionReason = rejectionReason;
+		}
+		user.updatedOn = Date.now();
+		user.updatedBy = req.user._id;
+		await user.save();
+		return res.status(200).json({
+			message: verified
+				? "Driver license verified successfully"
+				: "Driver license rejected",
+			driver: {
+				_id: user._id,
+				name: user.name,
+				drivingLicense: user.drivingLicense,
+				licenseExpiry: user.licenseExpiry,
+				drivingLicensePicture: user.drivingLicensePicture,
+				licenseVerified: user.licenseVerified,
+				licenseRejectionReason: user.licenseRejectionReason,
+			},
+		});
+	} catch (error) {
+		console.error("verifyDriverLicense error:", error);
 		return res.status(500).json({
 			message: "Server error",
 		});

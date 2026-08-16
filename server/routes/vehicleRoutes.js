@@ -6,6 +6,7 @@ import {
 	adminAndManager,
 	driver,
 } from "../middleware/adminMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -21,8 +22,16 @@ import {
 	unassignVehicle,
 	activateDeactivateVehicle,
 } from "../controllers/vehicleController.js";
+import { uploadErrorHandler } from "../middleware/uploadErrorMiddleware.js";
 
-router.post("/create-vehicle", protect, adminAndManager, createVehicle);
+router.post(
+	"/create-vehicle",
+	protect,
+	adminAndManager,
+	upload.array("vehiclePhotos", 5),
+	uploadErrorHandler,
+	createVehicle,
+);
 router.get("/my-vehicle", protect, driver, getMyVehicle);
 router.get("/all-vehicles", protect, adminAndManager, getAllVehicles);
 router.get(
