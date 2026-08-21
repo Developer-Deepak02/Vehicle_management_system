@@ -9,7 +9,7 @@ export const sendEmail = async (to, subject, text) => {
 				pass: process.env.EMAIL_PASS,
 			},
 		});
-
+		
 		const mailOption = {
 			from: process.env.EMAIL_USER,
 			to,
@@ -17,9 +17,9 @@ export const sendEmail = async (to, subject, text) => {
 			text,
 		};
 		await transporter.sendMail(mailOption);
+		console.log("Email sent successfully to:", to);
 	} catch (error) {
-		console.error("Error in sending mail :", error);
+		console.error("Error in sending mail:", error);
+		throw error;
 	}
 };
-
-

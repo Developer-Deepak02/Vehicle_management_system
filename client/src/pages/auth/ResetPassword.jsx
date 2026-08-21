@@ -1,40 +1,43 @@
 import { useState } from "react";
-import { loginUser } from "../../services/authService";
-import { useAuth } from "../../context/AuthContext";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { TruckElectric } from "lucide-react";
+import { resetPassword } from "../../services/authService";
 
-const Login = () => {
-	const { login } = useAuth();
+const ResetPassword = () => {
+	const location = useLocation();
 	const navigate = useNavigate();
-	const [email, setEmail] = useState("");
-	const [password, setPassword] = useState("");
-	const [error, setError] = useState("");
+	const email = location.state?.email;
+	const [newPassword, setNewPassword] = useState("");
+	const [confirmPassword, setConfirmPassword] = useState("");
 	const [loading, setLoading] = useState(false);
 
 	const handleSubmit = async (e) => {
 		e.preventDefault();
-		setError("");
-		if (!email || !password) {
-			toast.error("Email and password are required");
+		if (!email) {
+			toast.error("Reset session not found. Please try again.");
+			navigate("/forgot-password");
+			return;
+		}
+		if (!newPassword || !confirmPassword) {
+			toast.error("Please fill all the fields");
+			return;
+		}
+		if (newPassword.length < 6) {
+			toast.error("Password must be at least 6 characters");
+			return;
+		}
+		if (newPassword !== confirmPassword) {
+			toast.error("Passwords do not match");
 			return;
 		}
 		try {
 			setLoading(true);
-			const data = await loginUser(email, password);
-			console.log("Login successful:", data);
-			login(data);
-			toast.success("Login successful");
-			if (data.role === "admin") {
-				navigate("/admin/dashboard");
-			} else if (data.role === "manager") {
-				navigate("/manager/dashboard");
-			} else if (data.role === "driver") {
-				navigate("/driver/dashboard");
-			}
+			const data = await resetPassword(email, newPassword);
+			toast.success(data.message);
+			navigate("/login");
 		} catch (error) {
-			console.error("Login error:", error);
+			console.error("Reset password error:", error);
 			const message = error.response?.data?.message || "Something went wrong";
 			toast.error(message);
 		} finally {
@@ -56,72 +59,65 @@ const Login = () => {
 					</p>
 				</div>
 				{/* Title */}
-				<div className="mb-6">
-					<h2 className=" text-xl text-center font-semibold text-gray-900">
-						Login to your account
+				<div className="text-center mb-6">
+					<h2 className="text-2xl font-semibold text-gray-900">
+						Reset Password
 					</h2>
+					<p className="text-sm text-gray-500 mt-2">
+						Create a new password for your account.
+					</p>
 				</div>
 				<form onSubmit={handleSubmit} className="space-y-5">
-					{/* Email */}
+					{/* New Password */}
 					<div>
 						<label
-							htmlFor="email"
+							htmlFor="newPassword"
 							className="block text-sm font-medium text-gray-700 mb-2"
 						>
-							Email
+							New Password
 						</label>
 						<input
-							id="email"
-							type="email"
-							value={email}
-							onChange={(e) => setEmail(e.target.value)}
-							placeholder="Enter your email"
-							className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-						/>
-					</div>
-					{/* Password */}
-					<div>
-						<label
-							htmlFor="password"
-							className="block text-sm font-medium text-gray-700 mb-2"
-						>
-							Password
-						</label>
-						<input
-							id="password"
+							id="newPassword"
 							type="password"
-							value={password}
-							onChange={(e) => setPassword(e.target.value)}
-							placeholder="Enter your password"
+							value={newPassword}
+							onChange={(e) => setNewPassword(e.target.value)}
+							placeholder="Enter new password"
 							className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 						/>
 					</div>
-					{/* Forgot Password */}
-					<div className="text-right">
-						<Link
-							to="/forgot-password"
-							className="text-sm font-medium text-violet-600 hover:text-violet-700"
+					{/* Confirm Password */}
+					<div>
+						<label
+							htmlFor="confirmPassword"
+							className="block text-sm font-medium text-gray-700 mb-2"
 						>
-							Forgot password?
-						</Link>
+							Confirm Password
+						</label>
+						<input
+							id="confirmPassword"
+							type="password"
+							value={confirmPassword}
+							onChange={(e) => setConfirmPassword(e.target.value)}
+							placeholder="Confirm new password"
+							className="w-full rounded-lg border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+						/>
 					</div>
-					{/* Login Button */}
+					{/* Submit */}
 					<button
 						type="submit"
 						disabled={loading}
 						className="w-full rounded-lg bg-violet-600 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
 					>
-						{loading ? "Logging in..." : "Login"}
+						{loading ? "Resetting..." : "Reset Password"}
 					</button>
 				</form>
-				{/* Register */}
-				<div className="text-center mt-6 text-sm text-gray-500">
-					Don't have an account?{" "}
+				{/* Login */}
+				<div className="text-center mt-6">
 					<Link
-						to="/register"
-						className="font-semibold text-violet-600 hover:text-violet-700"
+						to="/login"
+						className="text-sm text-gray-500 hover:text-gray-700"
 					>
-						Create here
+						Back to Login
 					</Link>
 				</div>
 			</div>
@@ -129,4 +125,4 @@ const Login = () => {
 	);
 };
 
-export default Login;
+export default ResetPassword;
