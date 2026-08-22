@@ -12,6 +12,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyResetOtp from "./pages/auth/VerifyResetOtp";
 import ResetPassword from "./pages/auth/ResetPassword";
 import MainLayout from "./components/layout/MainLayout";
+import Vehicles from "./pages/admin/Vehicles";
 
 function App() {
 	return (
@@ -36,6 +37,7 @@ function App() {
 				<Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
 					<Route element={<MainLayout />}>
 						<Route path="/admin/dashboard" element={<AdminDashboard />} />
+						<Route path="/admin/vehicles" element={<Vehicles />} />
 					</Route>
 				</Route>
 
