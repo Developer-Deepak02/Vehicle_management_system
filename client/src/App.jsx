@@ -11,6 +11,7 @@ import VerifyEmail from "./pages/auth/VerifyEmail";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyResetOtp from "./pages/auth/VerifyResetOtp";
 import ResetPassword from "./pages/auth/ResetPassword";
+import MainLayout from "./components/layout/MainLayout";
 
 function App() {
 	return (
@@ -33,17 +34,23 @@ function App() {
 
 				{/* Admin routes */}
 				<Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
-					<Route path="/admin/dashboard" element={<AdminDashboard />} />
+					<Route element={<MainLayout />}>
+						<Route path="/admin/dashboard" element={<AdminDashboard />} />
+					</Route>
 				</Route>
 
 				{/* Manager routes */}
-				<Route element={<ProtectedRoute allowedRoles={["admin", "manager"]} />}>
-					<Route path="/manager/dashboard" element={<ManagerDashboard />} />
+				<Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
+					<Route element={<MainLayout />}>
+						<Route path="/manager/dashboard" element={<ManagerDashboard />} />
+					</Route>
 				</Route>
 
 				{/* Driver routes */}
 				<Route element={<ProtectedRoute allowedRoles={["driver"]} />}>
-					<Route path="/driver/dashboard" element={<DriverDashboard />} />
+					<Route element={<MainLayout />}>
+						<Route path="/driver/dashboard" element={<DriverDashboard />} />
+					</Route>
 				</Route>
 			</Routes>
 		</BrowserRouter>
