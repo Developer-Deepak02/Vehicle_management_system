@@ -9,6 +9,7 @@ import {
 	RotateCcw,
 } from "lucide-react";
 import { getAllVehicles } from "../../services/vehicleService";
+import { Link } from "react-router-dom";
 
 const Vehicles = () => {
 	const [vehicles, setVehicles] = useState([]);
@@ -95,10 +96,13 @@ const Vehicles = () => {
 						Manage and monitor all vehicles in the system.
 					</p>
 				</div>
-				<button className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer">
+				<Link
+					to="/admin/vehicles/add"
+					className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
+				>
 					<Plus className="w-4 h-4" />
 					Add Vehicle
-				</button>
+				</Link>
 			</div>
 			{/* SEARCH + FILTERS */}
 			<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
@@ -307,7 +311,7 @@ const Vehicles = () => {
 							</table>
 						</div>
 
-						    {/* PAGINATION */}
+						{/* PAGINATION */}
 
 						{pagination.totalPages > 0 && (
 							<div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-200">

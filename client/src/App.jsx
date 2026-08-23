@@ -13,6 +13,7 @@ import VerifyResetOtp from "./pages/auth/VerifyResetOtp";
 import ResetPassword from "./pages/auth/ResetPassword";
 import MainLayout from "./components/layout/MainLayout";
 import Vehicles from "./pages/admin/Vehicles";
+import AddVehicle from "./pages/admin/AddVehicle";
 
 function App() {
 	return (
@@ -38,6 +39,7 @@ function App() {
 					<Route element={<MainLayout />}>
 						<Route path="/admin/dashboard" element={<AdminDashboard />} />
 						<Route path="/admin/vehicles" element={<Vehicles />} />
+						<Route path="/admin/vehicles/add" element={<AddVehicle />} />
 					</Route>
 				</Route>
 
