@@ -7,6 +7,13 @@ export const getAllVehicles = async (params = {}) => {
 	});
 
 	return response.data;
+};	
+
+// Get single vehicle
+export const getVehicle = async (vehicleId) => {
+	const response = await api.get(`/vehicles/${vehicleId}`);
+
+	return response.data;
 };
 
 // Create vehicle

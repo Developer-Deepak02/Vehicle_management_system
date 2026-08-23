@@ -14,6 +14,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import MainLayout from "./components/layout/MainLayout";
 import Vehicles from "./pages/admin/Vehicles";
 import AddVehicle from "./pages/admin/AddVehicle";
+import VehicleDetails from "./pages/admin/VehicleDetails";
 
 function App() {
 	return (
@@ -40,6 +41,7 @@ function App() {
 						<Route path="/admin/dashboard" element={<AdminDashboard />} />
 						<Route path="/admin/vehicles" element={<Vehicles />} />
 						<Route path="/admin/vehicles/add" element={<AddVehicle />} />
+						<Route path="/admin/vehicles/:id" element={<VehicleDetails />} />
 					</Route>
 				</Route>
 

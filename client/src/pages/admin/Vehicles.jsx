@@ -300,10 +300,13 @@ const Vehicles = () => {
 											{/* Action */}
 
 											<td className="px-6 py-4 text-right">
-												<button className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition cursor-pointer">
+												<Link
+													to={`/admin/vehicles/${vehicle._id}`}
+													className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+												>
 													<Eye className="w-4 h-4" />
 													View
-												</button>
+												</Link>
 											</td>
 										</tr>
 									))}
