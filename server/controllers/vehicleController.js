@@ -134,13 +134,21 @@ export const getAllVehicles = async (req, res) => {
 
 export const getVehicle = async (req, res) => {
 	try {
-		const vehicle = await Vehicle.findById(req.params.id);
+		const vehicle = await Vehicle.findById(req.params.id).populate(
+			"driverAssigned",
+			"name email",
+		);
 		if (!vehicle) {
-			return res.status(404).json({ message: "Vehicle not found" });
+			return res.status(404).json({
+				message: "Vehicle not found",
+			});
 		}
-		res.status(200).json(vehicle);
+		return res.status(200).json(vehicle);
 	} catch (error) {
-		res.status(500).json({ message: "Server error" });
+		console.error("getVehicle error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
 

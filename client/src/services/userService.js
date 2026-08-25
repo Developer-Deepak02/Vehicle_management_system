@@ -5,3 +5,14 @@ export const getCurrentUser = async () => {
 
 	return response.data;
 };
+
+export const getAvailableDrivers = async () => {
+	const response = await api.get("/users/drivers", {
+		params: {
+			available: "true",
+			limit: 100,
+		},
+	});
+
+	return response.data;
+};
