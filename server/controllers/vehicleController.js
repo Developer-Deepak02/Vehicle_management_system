@@ -152,27 +152,25 @@ export const getVehicle = async (req, res) => {
 	}
 };
 
-// update vehicle
 export const updateVehicle = async (req, res) => {
-	const vehicleId = req.params.id;
-	const {
-		vehicleName,
-		vehicleModel,
-		vehicleYear,
-		vehicleType,
-		vehicleDescription,
-		vehiclePhoto,
-	} = req.body;
-
 	try {
-		const vehicle = await Vehicle.findById(vehicleId);
+		const vehicle = await Vehicle.findById(req.params.id);
 		if (!vehicle) {
-			return res.status(404).json({ message: "Vehicle not found" });
+			return res.status(404).json({
+				message: "Vehicle not found",
+			});
 		}
+		const {
+			vehicleName,
+			vehicleModel,
+			vehicleYear,
+			vehicleType,
+			vehicleDescription,
+			keepPhotos,
+		} = req.body;
 		if (vehicleName !== undefined) {
 			vehicle.vehicleName = vehicleName;
 		}
-
 		if (vehicleModel !== undefined) {
 			vehicle.vehicleModel = vehicleModel;
 		}
@@ -185,18 +183,42 @@ export const updateVehicle = async (req, res) => {
 		if (vehicleDescription !== undefined) {
 			vehicle.vehicleDescription = vehicleDescription;
 		}
-		if (vehiclePhoto !== undefined) {
-			vehicle.vehiclePhoto = vehiclePhoto;
+		let photosToKeep = vehicle.vehiclePhotos;
+		if (keepPhotos !== undefined) {
+			try {
+				photosToKeep = JSON.parse(keepPhotos);
+			} catch (error) {
+				return res.status(400).json({
+					message: "Invalid vehicle photos data",
+				});
+			}
 		}
+		if (req.files && req.files.length > 0) {
+			const uploadResults = await Promise.all(
+				req.files.map((file) =>
+					uploadToCloudinary(file.buffer, "vms/vehicle-photos"),
+				),
+			);
+			const newPhotos = uploadResults.map((result) => result.secure_url);
+			photosToKeep = [...photosToKeep, ...newPhotos];
+		}
+		if (photosToKeep.length < 1 || photosToKeep.length > 5) {
+			return res.status(400).json({
+				message: "Vehicle must have between 1 and 5 photos",
+			});
+		}
+		vehicle.vehiclePhotos = photosToKeep;
 		vehicle.updatedBy = req.user._id;
 		vehicle.updatedOn = Date.now();
 		await vehicle.save();
-		res.status(200).json(vehicle);
+		return res.status(200).json(vehicle);
 	} catch (error) {
-		res.status(500).json({ message: "Server error" });
+		console.error("updateVehicle error:", error);
+		return res.status(500).json({
+			message: "Server error",
+		});
 	}
 };
-
 // delete vehicle
 
 export const deleteVehicle = async (req, res) => {

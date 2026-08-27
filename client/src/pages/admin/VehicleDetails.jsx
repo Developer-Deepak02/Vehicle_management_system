@@ -20,6 +20,7 @@ import {
 	Search,
 	X,
 	Loader2,
+	Edit,
 } from "lucide-react";
 
 const VehicleDetails = () => {
@@ -183,6 +184,13 @@ const VehicleDetails = () => {
 					</div>
 				</div>
 				<div className="flex items-center gap-2">
+					<Link
+						to={`/admin/vehicles/${vehicle._id}/edit`}
+						className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+					>
+						<Edit className="w-4 h-4" />
+						Edit
+					</Link>
 					<span
 						className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium ${
 							vehicle.status === "assigned"

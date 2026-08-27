@@ -15,6 +15,7 @@ import MainLayout from "./components/layout/MainLayout";
 import Vehicles from "./pages/admin/Vehicles";
 import AddVehicle from "./pages/admin/AddVehicle";
 import VehicleDetails from "./pages/admin/VehicleDetails";
+import EditVehicle from "./pages/admin/EditVehicle";
 
 function App() {
 	return (
@@ -42,6 +43,7 @@ function App() {
 						<Route path="/admin/vehicles" element={<Vehicles />} />
 						<Route path="/admin/vehicles/add" element={<AddVehicle />} />
 						<Route path="/admin/vehicles/:id" element={<VehicleDetails />} />
+						<Route path="/admin/vehicles/:id/edit" element={<EditVehicle />} />
 					</Route>
 				</Route>
 

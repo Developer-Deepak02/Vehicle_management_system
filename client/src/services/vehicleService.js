@@ -23,6 +23,15 @@ export const createVehicle = async (formData) => {
 	return response.data;
 };
 
+// Update vehicle
+export const updateVehicle = async (vehicleId, formData) => {
+	const response = await api.put(
+		`/vehicles/update-vehicle/${vehicleId}`,
+		formData,
+	);
+	return response.data;
+};
+
 // Get available vehicles
 export const getAvailableVehicles = async () => {
 	const response = await api.get("/vehicles/available-vehicle");
@@ -30,6 +39,7 @@ export const getAvailableVehicles = async () => {
 	return response.data;
 };
 
+// assignVehicle
 export const assignVehicle = async (vehicleId, driverId) => {
 	const response = await api.put(`/vehicles/${vehicleId}/assign`, {
 		driverId,
@@ -38,6 +48,7 @@ export const assignVehicle = async (vehicleId, driverId) => {
 	return response.data;
 };
 
+// unassignVehicle
 export const unassignVehicle = async (vehicleId) => {
 	const response = await api.put(`/vehicles/${vehicleId}/unassign`);
 
