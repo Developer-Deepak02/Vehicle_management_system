@@ -7,8 +7,14 @@ import {
 	Search,
 	SlidersHorizontal,
 	RotateCcw,
+	Power,
+	PowerOff,
+	X,
 } from "lucide-react";
-import { getAllVehicles } from "../../services/vehicleService";
+import {
+	getAllVehicles,
+	activateDeactivateVehicle,
+} from "../../services/vehicleService";
 import { Link } from "react-router-dom";
 
 const Vehicles = () => {
@@ -18,6 +24,8 @@ const Vehicles = () => {
 	const [status, setStatus] = useState("");
 	const [vehicleType, setVehicleType] = useState("");
 	const [active, setActive] = useState("");
+	const [selectedVehicle, setSelectedVehicle] = useState(null);
+	const [statusLoading, setStatusLoading] = useState(false);
 	const [pagination, setPagination] = useState({
 		currentPage: 1,
 		limit: 10,
@@ -73,6 +81,25 @@ const Vehicles = () => {
 		setTimeout(() => {
 			handleSearch(1);
 		}, 0);
+	};
+
+	// Activate / deactivate vehicle
+	const handleStatusChange = async () => {
+		if (!selectedVehicle) return;
+		try {
+			setStatusLoading(true);
+			const data = await activateDeactivateVehicle(selectedVehicle._id);
+			toast.success(data.message || "Vehicle status updated successfully");
+			setSelectedVehicle(null);
+			await handleSearch(pagination.currentPage);
+		} catch (error) {
+			console.error("Vehicle status update error:", error);
+			const message =
+				error.response?.data?.message || "Failed to update vehicle status";
+			toast.error(message);
+		} finally {
+			setStatusLoading(false);
+		}
 	};
 
 	// Loading
@@ -268,15 +295,18 @@ const Vehicles = () => {
 											{/* Status */}
 
 											<td className="px-6 py-4">
-												<span
-													className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-														vehicle.status === "assigned"
-															? "bg-blue-100 text-blue-700"
-															: "bg-green-100 text-green-700"
-													}`}
-												>
-													{vehicle.status}
-												</span>
+												<div className="flex flex-col items-start gap-1">
+													<span
+														className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+															vehicle.status === "assigned"
+																? "bg-blue-100 text-blue-700"
+																: "bg-green-100 text-green-700"
+														}`}
+													>
+														{vehicle.status}
+													</span>
+													
+												</div>
 											</td>
 
 											{/* Driver */}
@@ -300,13 +330,45 @@ const Vehicles = () => {
 											{/* Action */}
 
 											<td className="px-6 py-4 text-right">
-												<Link
-													to={`/admin/vehicles/${vehicle._id}`}
-													className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
-												>
-													<Eye className="w-4 h-4" />
-													View
-												</Link>
+												<div className="inline-flex items-center gap-2">
+													<Link
+														to={`/admin/vehicles/${vehicle._id}`}
+														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+													>
+														<Eye className="w-4 h-4" />
+														View
+													</Link>
+													<button
+														onClick={() => setSelectedVehicle(vehicle)}
+														disabled={
+															vehicle.active && vehicle.status === "assigned"
+														}
+														title={
+															vehicle.active && vehicle.status === "assigned"
+																? "Unassign the vehicle before deactivating it"
+																: vehicle.active
+																	? "Deactivate vehicle"
+																	: "Activate vehicle"
+														}
+														className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
+															vehicle.active
+																? "text-red-600 hover:bg-red-50"
+																: "text-green-600 hover:bg-green-50"
+														} disabled:opacity-40 disabled:cursor-not-allowed`}
+													>
+														{vehicle.active ? (
+															<>
+																<PowerOff className="w-4 h-4" />
+																Deactivate
+															</>
+														) : (
+															<>
+																<Power className="w-4 h-4" />
+																Activate
+															</>
+														)}
+													</button>
+												</div>
 											</td>
 										</tr>
 									))}
@@ -363,6 +425,89 @@ const Vehicles = () => {
 					</div>
 				)}
 			</div>
+
+			{/* STATUS CONFIRMATION MODAL */}
+			{selectedVehicle && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+					<div
+						className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+						onClick={() => !statusLoading && setSelectedVehicle(null)}
+					/>
+					<div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+						<button
+							onClick={() => !statusLoading && setSelectedVehicle(null)}
+							disabled={statusLoading}
+							className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-40"
+						>
+							<X className="w-5 h-5" />
+						</button>
+						<div
+							className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+								selectedVehicle.active ? "bg-red-50" : "bg-green-50"
+							}`}
+						>
+							{selectedVehicle.active ? (
+								<PowerOff className="w-6 h-6 text-red-600" />
+							) : (
+								<Power className="w-6 h-6 text-green-600" />
+							)}
+						</div>
+						<h2 className="text-lg font-semibold text-gray-900 mt-4">
+							{selectedVehicle.active
+								? "Deactivate vehicle?"
+								: "Activate vehicle?"}
+						</h2>
+						<p className="text-sm text-gray-500 mt-2 leading-6">
+							Are you sure you want to{" "}
+							{selectedVehicle.active ? "deactivate" : "activate"}{" "}
+							<span className="font-semibold text-gray-700">
+								{selectedVehicle.vehicleName}
+							</span>
+							?
+						</p>
+						{selectedVehicle.active &&
+							selectedVehicle.status === "assigned" && (
+								<div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700">
+									This vehicle is currently assigned to a driver. Unassign it
+									before deactivating.
+								</div>
+							)}
+						<div className="flex justify-end gap-3 mt-6">
+							<button
+								onClick={() => setSelectedVehicle(null)}
+								disabled={statusLoading}
+								className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+							>
+								Cancel
+							</button>
+							<button
+								onClick={handleStatusChange}
+								disabled={
+									statusLoading ||
+									(selectedVehicle.active &&
+										selectedVehicle.status === "assigned")
+								}
+								className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed ${
+									selectedVehicle.active
+										? "bg-red-600 hover:bg-red-700"
+										: "bg-green-600 hover:bg-green-700"
+								}`}
+							>
+								{statusLoading ? (
+									<>
+										<div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+										Updating...
+									</>
+								) : selectedVehicle.active ? (
+									"Deactivate"
+								) : (
+									"Activate"
+								)}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };

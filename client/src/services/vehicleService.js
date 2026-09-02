@@ -54,3 +54,9 @@ export const unassignVehicle = async (vehicleId) => {
 
 	return response.data;
 };
+
+// Activate / deactivate vehicle
+export const activateDeactivateVehicle = async (vehicleId) => {
+	const response = await api.patch(`/vehicles/${vehicleId}/status`);
+	return response.data;
+};
