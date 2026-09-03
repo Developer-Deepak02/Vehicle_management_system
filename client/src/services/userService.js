@@ -16,3 +16,15 @@ export const getAvailableDrivers = async () => {
 
 	return response.data;
 };
+
+// Update current user profile
+export const updateCurrentUser = async (data) => {
+	const response = await api.put("/users/update-me", data);
+	return response.data;
+};
+
+// Update profile picture
+export const updateProfilePicture = async (formData) => {
+	const response = await api.put("/users/profile-picture", formData);
+	return response.data;
+};

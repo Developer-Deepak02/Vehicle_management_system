@@ -3,7 +3,7 @@ import {
 	LayoutDashboard,
 	Users,
 	TruckElectric,
-  Truck,
+	Truck,
 	UserRound,
 	Settings,
 	LogOut,
@@ -37,8 +37,12 @@ const Sidebar = () => {
 			path: "/admin/vehicles",
 			icon: Truck,
 		},
+		{
+			name: "Profile",
+			path: "/profile",
+			icon: UserRound,
+		},
 	];
-
 	const managerLinks = [
 		{
 			name: "Dashboard",
@@ -55,8 +59,12 @@ const Sidebar = () => {
 			path: "/manager/vehicles",
 			icon: Truck,
 		},
+		{
+			name: "Profile",
+			path: "/profile",
+			icon: UserRound,
+		},
 	];
-
 	const driverLinks = [
 		{
 			name: "Dashboard",
@@ -70,11 +78,10 @@ const Sidebar = () => {
 		},
 		{
 			name: "Profile",
-			path: "/driver/profile",
+			path: "/profile",
 			icon: UserRound,
 		},
 	];
-
 	let links = [];
 	if (user?.role === "admin") {
 		links = adminLinks;
@@ -83,15 +90,13 @@ const Sidebar = () => {
 	} else if (user?.role === "driver") {
 		links = driverLinks;
 	}
-
 	const handleLogout = () => {
 		logout();
 	};
-
 	return (
-		<aside className="w-64 min-h-screen bg-violet-950 text-white flex flex-col">
+		<aside className="w-64 h-screen bg-violet-950 text-white flex flex-col shrink-0">
 			{/* Logo */}
-			<div className="h-20 px-6 flex items-center border-b border-violet-800">
+			<div className="h-20 px-6 flex items-center border-b border-violet-800 shrink-0">
 				<div className="flex items-center gap-3">
 					<TruckElectric className="size-8 text-violet-300" />
 					<div>
@@ -101,7 +106,7 @@ const Sidebar = () => {
 				</div>
 			</div>
 			{/* Navigation */}
-			<nav className="flex-1 px-4 py-6">
+			<nav className="flex-1 px-4 py-6 overflow-y-auto min-h-0">
 				<p className="text-xs uppercase tracking-wider text-violet-400 mb-3 px-3">
 					Menu
 				</p>
@@ -127,18 +132,18 @@ const Sidebar = () => {
 				</div>
 			</nav>
 			{/* User section */}
-			<div className="border-t border-violet-800 p-4">
-				<div className="flex items-center gap-3 mb-4">
-					<div className="size-10 rounded-full bg-violet-700 flex items-center justify-center">
-						<UserRound className="size-5" />
+			<div className="border-t border-violet-800 p-4 shrink-0">
+				<Link to={"/profile"}>
+					<div className="flex items-center gap-3 mb-4">
+						<div className="size-10 rounded-full bg-violet-700 flex items-center justify-center">
+							<UserRound className="size-5" />
+						</div>
+						<div className="min-w-0">
+							<p className="text-sm font-medium truncate">{user?.name}</p>
+							<p className="text-xs text-violet-300 capitalize">{user?.role}</p>
+						</div>
 					</div>
-					<div className="min-w-0">
-						<p className="text-sm font-medium truncate">{user?.name}</p>
-
-						<p className="text-xs text-violet-300 capitalize">{user?.role}</p>
-					</div>
-				</div>
-
+				</Link>
 				<button
 					onClick={handleLogout}
 					className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-violet-200 hover:bg-red-600 hover:text-white transition cursor-pointer"

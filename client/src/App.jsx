@@ -16,6 +16,7 @@ import Vehicles from "./pages/admin/Vehicles";
 import AddVehicle from "./pages/admin/AddVehicle";
 import VehicleDetails from "./pages/admin/VehicleDetails";
 import EditVehicle from "./pages/admin/EditVehicle";
+import Profile from "./pages/Profile";
 
 function App() {
 	return (
@@ -35,6 +36,17 @@ function App() {
 				<Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
 				<Route path="/reset-password" element={<ResetPassword />} />
 				<Route path="/unauthorized" element={<Unauthorized />} />
+				
+				{/* Profile route */}
+				<Route
+					element={
+						<ProtectedRoute allowedRoles={["admin", "manager", "driver"]} />
+					}
+				>
+					<Route element={<MainLayout />}>
+						<Route path="/profile" element={<Profile />} />
+					</Route>
+				</Route>
 
 				{/* Admin routes */}
 				<Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
