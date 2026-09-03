@@ -17,6 +17,7 @@ import AddVehicle from "./pages/admin/AddVehicle";
 import VehicleDetails from "./pages/admin/VehicleDetails";
 import EditVehicle from "./pages/admin/EditVehicle";
 import Profile from "./pages/Profile";
+import ChangePassword from "./pages/ChangePassword";
 
 function App() {
 	return (
@@ -45,6 +46,7 @@ function App() {
 				>
 					<Route element={<MainLayout />}>
 						<Route path="/profile" element={<Profile />} />
+						<Route path="/change-password" element={<ChangePassword />} />
 					</Route>
 				</Route>
 

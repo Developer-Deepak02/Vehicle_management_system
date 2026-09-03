@@ -28,3 +28,9 @@ export const updateProfilePicture = async (formData) => {
 	const response = await api.put("/users/profile-picture", formData);
 	return response.data;
 };
+
+// Change password
+export const changePassword = async (data) => {
+	const response = await api.put("/users/change-password", data);
+	return response.data;
+};

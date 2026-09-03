@@ -13,7 +13,9 @@ import {
 	Camera,
 	Save,
 	X,
+	KeyRound,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import {
 	getCurrentUser,
 	updateCurrentUser,
@@ -367,6 +369,32 @@ const Profile = () => {
 							)}
 						</div>
 					</div>
+				</div>
+			</div>
+
+			{/* ACCOUNT SECURITY */}
+			<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+				<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+					<div className="flex items-center gap-3">
+						<div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center">
+							<KeyRound className="w-4 h-4 text-violet-600" />
+						</div>
+						<div>
+							<h2 className="text-base font-semibold text-gray-900">
+								Account Security
+							</h2>
+							<p className="text-xs text-gray-500">
+								Manage your password and keep your account secure.
+							</p>
+						</div>
+					</div>
+					<Link
+						to="/change-password"
+						className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 hover:border-gray-400 transition"
+					>
+						<KeyRound className="w-4 h-4" />
+						Change Password
+					</Link>
 				</div>
 			</div>
 
