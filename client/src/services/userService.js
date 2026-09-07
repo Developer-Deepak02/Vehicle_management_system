@@ -75,3 +75,20 @@ export const getUserById = async (userId) => {
 	const response = await api.get(`/users/user/${userId}`);
 	return response.data;
 };
+
+// Get drivers
+export const getDrivers = async (params = {}) => {
+	const response = await api.get("/users/all-users", {
+		params: {
+			...params,
+			role: "driver",
+		},
+	});
+	return response.data;
+};
+
+// Get one driver
+export const getDriver = async (driverId) => {
+	const response = await api.get(`/users/drivers/${driverId}`);
+	return response.data;
+};

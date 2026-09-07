@@ -21,6 +21,9 @@ import ChangePassword from "./pages/ChangePassword";
 import Managers from "./pages/admin/Managers";
 import AddManager from "./pages/admin/AddManager";
 import EditManager from "./pages/admin/EditManager";
+import Drivers from "./pages/admin/Drivers";
+import DriverDetails from "./pages/admin/DriverDetails";
+import EditDriver from "./pages/admin/EditDriver";
 
 function App() {
 	return (
@@ -64,6 +67,9 @@ function App() {
 						<Route path="/admin/vehicles/:id" element={<VehicleDetails />} />
 						<Route path="/admin/vehicles/:id/edit" element={<EditVehicle />} />
 						<Route path="/admin/managers/:id/edit" element={<EditManager />} />
+						<Route path="/admin/drivers" element={<Drivers />} />
+						<Route path="/admin/drivers/:id/edit" element={<EditDriver />} />
+						<Route path="/admin/drivers/:id" element={<DriverDetails />} />
 					</Route>
 				</Route>
 
