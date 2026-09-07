@@ -92,3 +92,12 @@ export const getDriver = async (driverId) => {
 	const response = await api.get(`/users/drivers/${driverId}`);
 	return response.data;
 };
+
+// Verify / reject driver license
+export const verifyDriverLicense = async (driverId, data) => {
+	const response = await api.patch(
+		`/users/driver-license/${driverId}/verify`,
+		data,
+	);
+	return response.data;
+};

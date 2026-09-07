@@ -10,15 +10,20 @@ import {
 	ShieldAlert,
 	IdCard,
 	Clock,
+	Check,
+	X,
 } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
-import { getDriver } from "../../services/userService";
+import { getDriver, verifyDriverLicense } from "../../services/userService";
 
 const DriverDetails = () => {
 	const { id } = useParams();
 	const [driver, setDriver] = useState(null);
 	const [loading, setLoading] = useState(true);
+  const [verificationLoading, setVerificationLoading] = useState(false);
+	const [showRejectForm, setShowRejectForm] = useState(false);
+	const [rejectionReason, setRejectionReason] = useState("");
 
 	useEffect(() => {
 		const loadDriver = async () => {
@@ -43,6 +48,46 @@ const DriverDetails = () => {
 			month: "short",
 			year: "numeric",
 		});
+	};
+
+  const handleLicenseVerification = async (verified) => {
+		if (!driver) return;
+
+		if (!verified && !rejectionReason.trim()) {
+			toast.error("Rejection reason is required");
+			return;
+		}
+
+		try {
+			setVerificationLoading(true);
+
+			await verifyDriverLicense(driver._id, {
+				verified,
+				...(verified
+					? {}
+					: {
+							rejectionReason: rejectionReason.trim(),
+						}),
+			});
+
+			toast.success(
+				verified
+					? "Driver license verified successfully"
+					: "Driver license rejected",
+			);
+
+			const updatedDriver = await getDriver(id);
+			setDriver(updatedDriver);
+
+			setShowRejectForm(false);
+			setRejectionReason("");
+		} catch (error) {
+			toast.error(
+				error.response?.data?.message || "Failed to update license status",
+			);
+		} finally {
+			setVerificationLoading(false);
+		}
 	};
 
 	if (loading) {
@@ -323,6 +368,75 @@ const DriverDetails = () => {
 							<p className="text-sm text-red-600 mt-1">
 								{driver.licenseRejectionReason}
 							</p>
+						</div>
+					)}
+
+					{/* License Verification Actions */}
+					{driver.drivingLicensePicture &&
+						!licenseVerified &&
+						!licenseRejected && (
+							<div className="mt-5 pt-5 border-t border-gray-200">
+								<p className="text-sm font-medium text-gray-900 mb-3">
+									License Verification
+								</p>
+
+								<div className="flex flex-wrap gap-3">
+									<button
+										onClick={() => handleLicenseVerification(true)}
+										disabled={verificationLoading}
+										className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-green-600 text-white text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<Check className="size-4" />
+										{verificationLoading ? "Processing..." : "Approve License"}
+									</button>
+
+									<button
+										onClick={() => setShowRejectForm(true)}
+										disabled={verificationLoading}
+										className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										<X className="size-4" />
+										Reject License
+									</button>
+								</div>
+							</div>
+						)}
+
+					{showRejectForm && (
+						<div className="mt-5 pt-5 border-t border-gray-200">
+							<p className="text-sm font-medium text-gray-900 mb-3">
+								Rejection Reason
+							</p>
+
+							<textarea
+								value={rejectionReason}
+								onChange={(e) => setRejectionReason(e.target.value)}
+								placeholder="Enter the reason for rejecting this license..."
+								rows="3"
+								className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none resize-none focus:border-red-500 focus:ring-2 focus:ring-red-100"
+							/>
+
+							<div className="flex justify-end gap-3 mt-3">
+								<button
+									onClick={() => {
+										setShowRejectForm(false);
+										setRejectionReason("");
+									}}
+									disabled={verificationLoading}
+									className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+								>
+									Cancel
+								</button>
+
+								<button
+									onClick={() => handleLicenseVerification(false)}
+									disabled={verificationLoading}
+									className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+								>
+									<X className="size-4" />
+									{verificationLoading ? "Rejecting..." : "Confirm Rejection"}
+								</button>
+							</div>
 						</div>
 					)}
 				</div>
