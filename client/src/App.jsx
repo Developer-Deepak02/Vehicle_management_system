@@ -18,6 +18,8 @@ import VehicleDetails from "./pages/admin/VehicleDetails";
 import EditVehicle from "./pages/admin/EditVehicle";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
+import Managers from "./pages/admin/Managers";
+import AddManager from "./pages/admin/AddManager";
 
 function App() {
 	return (
@@ -37,7 +39,7 @@ function App() {
 				<Route path="/verify-reset-otp" element={<VerifyResetOtp />} />
 				<Route path="/reset-password" element={<ResetPassword />} />
 				<Route path="/unauthorized" element={<Unauthorized />} />
-				
+
 				{/* Profile route */}
 				<Route
 					element={
@@ -54,6 +56,8 @@ function App() {
 				<Route element={<ProtectedRoute allowedRoles={["admin"]} />}>
 					<Route element={<MainLayout />}>
 						<Route path="/admin/dashboard" element={<AdminDashboard />} />
+						<Route path="/admin/managers" element={<Managers />} />
+						<Route path="/admin/managers/add" element={<AddManager />} />
 						<Route path="/admin/vehicles" element={<Vehicles />} />
 						<Route path="/admin/vehicles/add" element={<AddVehicle />} />
 						<Route path="/admin/vehicles/:id" element={<VehicleDetails />} />
