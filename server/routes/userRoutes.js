@@ -9,6 +9,7 @@ import upload from "../middleware/uploadMiddleware.js";
 import {
 	getUsers,
 	getCurrentUser,
+	getUserById,
 	updateCurrentUser,
 	createManager,
 	createDriver,
@@ -33,6 +34,7 @@ router.post("/create-manager", protect, admin, createManager);
 router.post("/create-driver", protect, adminAndManager, createDriver);
 router.get("/drivers", protect, adminAndManager, getDrivers);
 router.get("/drivers/:id", protect, adminAndManager, getDriver);
+router.get("/user/:id", protect, adminAndManager, getUserById);
 router.patch("/status/:id", protect, adminAndManager, activateDeactivate);
 router.put("/update-user/:id", protect, adminAndManager, updateUser);
 router.delete("/delete-user/:id", protect, admin, deleteUser);

@@ -69,3 +69,9 @@ export const deleteUser = async (userId) => {
 	const response = await api.delete(`/users/delete-user/${userId}`);
 	return response.data;
 };
+
+// Get user by ID
+export const getUserById = async (userId) => {
+	const response = await api.get(`/users/user/${userId}`);
+	return response.data;
+};

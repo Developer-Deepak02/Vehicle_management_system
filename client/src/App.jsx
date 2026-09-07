@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
 import Managers from "./pages/admin/Managers";
 import AddManager from "./pages/admin/AddManager";
+import EditManager from "./pages/admin/EditManager";
 
 function App() {
 	return (
@@ -62,6 +63,7 @@ function App() {
 						<Route path="/admin/vehicles/add" element={<AddVehicle />} />
 						<Route path="/admin/vehicles/:id" element={<VehicleDetails />} />
 						<Route path="/admin/vehicles/:id/edit" element={<EditVehicle />} />
+						<Route path="/admin/managers/:id/edit" element={<EditManager />} />
 					</Route>
 				</Route>
 
