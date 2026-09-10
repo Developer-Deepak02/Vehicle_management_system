@@ -16,14 +16,26 @@ import {
 import { Link, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getDriver, verifyDriverLicense } from "../../services/userService";
+import {
+	getAvailableVehicles,
+	assignVehicle,
+	unassignVehicle,
+} from "../../services/vehicleService";
 
 const DriverDetails = () => {
 	const { id } = useParams();
 	const [driver, setDriver] = useState(null);
 	const [loading, setLoading] = useState(true);
-  const [verificationLoading, setVerificationLoading] = useState(false);
+	const [verificationLoading, setVerificationLoading] = useState(false);
 	const [showRejectForm, setShowRejectForm] = useState(false);
 	const [rejectionReason, setRejectionReason] = useState("");
+	const [availableVehicles, setAvailableVehicles] = useState([]);
+	const [showAssignModal, setShowAssignModal] = useState(false);
+	const [selectedVehicle, setSelectedVehicle] = useState("");
+	const [assignmentLoading, setAssignmentLoading] = useState(false);
+	const [unassignLoading, setUnassignLoading] = useState(false);
+	const [showUnassignModal, setShowUnassignModal] = useState(false);
+	const [changeVehicleMode, setChangeVehicleMode] = useState(false);
 
 	useEffect(() => {
 		const loadDriver = async () => {
@@ -50,7 +62,7 @@ const DriverDetails = () => {
 		});
 	};
 
-  const handleLicenseVerification = async (verified) => {
+	const handleLicenseVerification = async (verified) => {
 		if (!driver) return;
 
 		if (!verified && !rejectionReason.trim()) {
@@ -90,6 +102,99 @@ const DriverDetails = () => {
 		}
 	};
 
+	const loadAvailableVehicles = async () => {
+		try {
+			const data = await getAvailableVehicles();
+			setAvailableVehicles(data || []);
+		} catch (error) {
+			toast.error(
+				error.response?.data?.message || "Failed to load available vehicles",
+			);
+		}
+	};
+
+	const handleOpenAssignModal = async () => {
+		await loadAvailableVehicles();
+		setSelectedVehicle("");
+		setChangeVehicleMode(Boolean(driver?.vehicleAssigned));
+		setShowAssignModal(true);
+	};
+
+	const handleCloseAssignModal = () => {
+		if (assignmentLoading) return;
+
+		setShowAssignModal(false);
+		setSelectedVehicle("");
+		setChangeVehicleMode(false);
+	};
+
+	const handleAssignVehicle = async () => {
+		if (!selectedVehicle) {
+			toast.error("Please select a vehicle");
+			return;
+		}
+
+		try {
+			setAssignmentLoading(true);
+
+			if (changeVehicleMode && driver.vehicleAssigned) {
+				await unassignVehicle(driver.vehicleAssigned._id);
+			}
+
+			await assignVehicle(selectedVehicle, driver._id);
+
+			toast.success(
+				changeVehicleMode
+					? "Vehicle changed successfully"
+					: "Vehicle assigned successfully",
+			);
+
+			const updatedDriver = await getDriver(id);
+			setDriver(updatedDriver);
+
+			setShowAssignModal(false);
+			setSelectedVehicle("");
+			setChangeVehicleMode(false);
+		} catch (error) {
+			toast.error(
+				error.response?.data?.message ||
+					(changeVehicleMode
+						? "Failed to change vehicle"
+						: "Failed to assign vehicle"),
+			);
+
+			const updatedDriver = await getDriver(id).catch(() => null);
+			if (updatedDriver) {
+				setDriver(updatedDriver);
+			}
+		} finally {
+			setAssignmentLoading(false);
+		}
+	};
+
+	const handleUnassignVehicle = async () => {
+		if (!vehicle) return;
+
+		try {
+			setUnassignLoading(true);
+
+			await unassignVehicle(vehicle._id);
+
+			toast.success("Vehicle unassigned successfully");
+
+			const updatedDriver = await getDriver(id);
+			setDriver(updatedDriver);
+
+			setShowUnassignModal(false);
+		} catch (error) {
+			toast.error(
+				error.response?.data?.message || "Failed to unassign vehicle",
+			);
+		} finally {
+			setUnassignLoading(false);
+		}
+	};
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-[400px]">
@@ -113,7 +218,7 @@ const DriverDetails = () => {
 		);
 	}
 
-  const licenseRejected = Boolean(driver.licenseRejectionReason);
+	const licenseRejected = Boolean(driver.licenseRejectionReason);
 	const licenseVerified = driver.licenseVerified === true && !licenseRejected;
 	const vehicle = driver.vehicleAssigned;
 
@@ -463,16 +568,23 @@ const DriverDetails = () => {
 
 							<div className="mt-4 space-y-2">
 								<div className="flex justify-between text-sm">
-									<span className="text-gray-500">Make</span>
+									<span className="text-gray-500">Vehicle Name</span>
 									<span className="font-medium text-gray-900">
-										{vehicle.make || "—"}
+										{vehicle.vehicleName || "—"}
 									</span>
 								</div>
 
 								<div className="flex justify-between text-sm">
 									<span className="text-gray-500">Model</span>
 									<span className="font-medium text-gray-900">
-										{vehicle.model || "—"}
+										{vehicle.vehicleModel || "—"}
+									</span>
+								</div>
+
+								<div className="flex justify-between text-sm">
+									<span className="text-gray-500">Year</span>
+									<span className="font-medium text-gray-900">
+										{vehicle.vehicleYear || "—"}
 									</span>
 								</div>
 
@@ -482,6 +594,23 @@ const DriverDetails = () => {
 										{formatDate(driver.vehicleAssignedOn)}
 									</span>
 								</div>
+							</div>
+
+							<div className="flex gap-2 mt-5 pt-5 border-t border-gray-200">
+								<button
+									onClick={handleOpenAssignModal}
+									className="flex-1 px-3 py-2 rounded-lg border border-violet-200 text-violet-700 text-sm font-medium hover:bg-violet-50"
+								>
+									Change Vehicle
+								</button>
+
+								<button
+									onClick={() => setShowUnassignModal(true)}
+									disabled={unassignLoading}
+									className="flex-1 px-3 py-2 rounded-lg border border-red-200 text-red-600 text-sm font-medium hover:bg-red-50 disabled:opacity-50"
+								>
+									Unassign
+								</button>
 							</div>
 						</div>
 					) : (
@@ -497,10 +626,188 @@ const DriverDetails = () => {
 							<p className="text-xs text-gray-500 mt-1">
 								This driver currently has no vehicle.
 							</p>
+
+							<button
+								onClick={handleOpenAssignModal}
+								className="mt-4 inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700"
+							>
+								Assign Vehicle
+							</button>
 						</div>
 					)}
 				</div>
 			</div>
+
+			{/* Assign / Change Vehicle Modal */}
+			{showAssignModal && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+					<div className="w-full max-w-md bg-white rounded-xl shadow-xl">
+						<div className="flex items-center justify-between p-5 border-b border-gray-200">
+							<div>
+								<h2 className="text-lg font-semibold text-gray-900">
+									{changeVehicleMode ? "Change Vehicle" : "Assign Vehicle"}
+								</h2>
+
+								<p className="text-sm text-gray-500 mt-1">
+									Select an available vehicle for {driver.name}.
+								</p>
+							</div>
+
+							<button
+								onClick={handleCloseAssignModal}
+								disabled={assignmentLoading}
+								className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 disabled:opacity-50"
+							>
+								<X className="size-5" />
+							</button>
+						</div>
+
+						<div className="p-5">
+							<label className="block text-sm font-medium text-gray-700 mb-2">
+								Select Vehicle
+							</label>
+
+							{availableVehicles.length > 0 ? (
+								<select
+									value={selectedVehicle}
+									onChange={(e) => setSelectedVehicle(e.target.value)}
+									disabled={assignmentLoading}
+									className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100 disabled:bg-gray-100"
+								>
+									<option value="">Select a vehicle</option>
+
+									{availableVehicles.map((item) => (
+										<option key={item._id} value={item._id}>
+											{item.registrationNumber} - {item.vehicleName}{" "}
+											{item.vehicleModel ? `(${item.vehicleModel})` : ""}
+										</option>
+									))}
+								</select>
+							) : (
+								<div className="rounded-lg bg-gray-50 border border-gray-200 p-4">
+									<p className="text-sm text-gray-500">
+										No available vehicles found.
+									</p>
+								</div>
+							)}
+
+							{selectedVehicle && (
+								<div className="mt-4 rounded-lg bg-violet-50 border border-violet-100 p-4">
+									<p className="text-xs font-medium text-violet-700 mb-2">
+										Selected Vehicle
+									</p>
+
+									{(() => {
+										const selected = availableVehicles.find(
+											(item) => item._id === selectedVehicle,
+										);
+
+										if (!selected) return null;
+
+										return (
+											<div className="space-y-1">
+												<p className="text-sm font-semibold text-gray-900">
+													{selected.vehicleName || "Vehicle"}
+												</p>
+
+												<p className="text-sm text-gray-600">
+													Registration: {selected.registrationNumber || "—"}
+												</p>
+
+												<p className="text-sm text-gray-600">
+													Model: {selected.vehicleModel || "—"}
+												</p>
+
+												<p className="text-sm text-gray-600">
+													Type: {selected.vehicleType || "—"}
+												</p>
+
+												<p className="text-sm text-gray-600">
+													Year: {selected.vehicleYear || "—"}
+												</p>
+											</div>
+										);
+									})()}
+								</div>
+							)}
+						</div>
+
+						<div className="flex justify-end gap-3 p-5 border-t border-gray-200">
+							<button
+								onClick={handleCloseAssignModal}
+								disabled={assignmentLoading}
+								className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+							>
+								Cancel
+							</button>
+
+							<button
+								onClick={handleAssignVehicle}
+								disabled={
+									assignmentLoading ||
+									!selectedVehicle ||
+									availableVehicles.length === 0
+								}
+								className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<Car className="size-4" />
+
+								{assignmentLoading
+									? changeVehicleMode
+										? "Changing..."
+										: "Assigning..."
+									: changeVehicleMode
+										? "Change Vehicle"
+										: "Assign Vehicle"}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* Unassign Vehicle Confirmation Modal */}
+			{showUnassignModal && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+					<div className="w-full max-w-md bg-white rounded-xl shadow-xl">
+						<div className="p-5">
+							<div className="size-11 rounded-full bg-red-100 flex items-center justify-center mb-4">
+								<ShieldAlert className="size-5 text-red-600" />
+							</div>
+
+							<h2 className="text-lg font-semibold text-gray-900">
+								Unassign Vehicle?
+							</h2>
+
+							<p className="text-sm text-gray-500 mt-2">
+								Are you sure you want to unassign{" "}
+								<span className="font-medium text-gray-700">
+									{vehicle?.registrationNumber || "this vehicle"}
+								</span>{" "}
+								from {driver.name}?
+							</p>
+						</div>
+
+						<div className="flex justify-end gap-3 p-5 border-t border-gray-200">
+							<button
+								onClick={() => setShowUnassignModal(false)}
+								disabled={unassignLoading}
+								className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+							>
+								Cancel
+							</button>
+
+							<button
+								onClick={handleUnassignVehicle}
+								disabled={unassignLoading}
+								className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+							>
+								<X className="size-4" />
+								{unassignLoading ? "Unassigning..." : "Unassign Vehicle"}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
 		</div>
 	);
 };
