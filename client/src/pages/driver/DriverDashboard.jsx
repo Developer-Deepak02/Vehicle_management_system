@@ -81,6 +81,14 @@ const DriverDashboard = () => {
 
 	const licenseVerified = user.licenseVerified === true;
 
+	const licenseRejected =
+		user.licenseVerified === false && Boolean(user.licenseRejectionReason);
+
+	const licensePending =
+		user.licenseVerified === false &&
+		!user.licenseRejectionReason &&
+		Boolean(user.drivingLicense);
+
 	const licenseExpiry = user.licenseExpiry
 		? new Date(user.licenseExpiry)
 		: null;
@@ -207,6 +215,29 @@ const DriverDashboard = () => {
 					</div>
 				)}
 
+			{/* VEHICLE STATUS ALERT */}
+			{vehicle && vehicle.active === false && (
+				<div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 flex items-start gap-3">
+					<AlertCircle className="text-red-600 mt-0.5" size={22} />
+					<div>
+						<h3 className="font-semibold text-red-800">
+							Assigned Vehicle is Inactive
+						</h3>
+						<p className="text-sm text-red-700 mt-1">
+							Your assigned vehicle is currently inactive. Please contact the
+							administrator or manager before using the vehicle.
+						</p>
+						<button
+							onClick={() => navigate("/driver/my-vehicle")}
+							className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-red-700 hover:text-red-900"
+						>
+							View Vehicle Details
+							<ArrowRight size={16} />
+						</button>
+					</div>
+				</div>
+			)}
+
 			{/* SUMMARY CARDS */}
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-5">
 				{/* ACCOUNT */}
@@ -233,10 +264,27 @@ const DriverDashboard = () => {
 					<div className="flex items-center justify-between">
 						<div>
 							<p className="text-sm text-gray-500">License Status</p>
-							<p className="text-lg font-semibold text-gray-900 mt-1">
-								{licenseVerified ? "Verified" : "Pending"}
+							<p
+								className={`text-lg font-semibold mt-1 ${
+									licenseVerified
+										? "text-green-600"
+										: licenseRejected
+											? "text-red-600"
+											: licensePending
+												? "text-amber-600"
+												: "text-gray-600"
+								}`}
+							>
+								{licenseVerified
+									? "Verified"
+									: licenseRejected
+										? "Rejected"
+										: licensePending
+											? "Pending"
+											: "Not Submitted"}
 							</p>
 						</div>
+
 						<div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center">
 							<ShieldCheck className="w-5 h-5 text-violet-600" />
 						</div>
@@ -247,10 +295,20 @@ const DriverDashboard = () => {
 							className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
 								licenseVerified
 									? "bg-green-50 text-green-700"
-									: "bg-amber-50 text-amber-700"
+									: licenseRejected
+										? "bg-red-50 text-red-700"
+										: licensePending
+											? "bg-amber-50 text-amber-700"
+											: "bg-gray-100 text-gray-600"
 							}`}
 						>
-							{licenseVerified ? "License Verified" : "Verification Pending"}
+							{licenseVerified
+								? "License Verified"
+								: licenseRejected
+									? "License Rejected"
+									: licensePending
+										? "Verification Pending"
+										: "License Not Submitted"}
 						</span>
 					</div>
 				</div>
