@@ -316,9 +316,12 @@ const VehicleDetails = () => {
 								<User className="w-6 h-6 text-violet-600" />
 							</div>
 							<div>
-								<p className="font-semibold text-gray-900">
+								<Link
+									to={`/admin/drivers/${vehicle.driverAssigned._id}`}
+									className="font-semibold text-violet-600 hover:text-violet-700 hover:underline"
+								>
 									{vehicle.driverAssigned.name}
-								</p>
+								</Link>
 								<p className="text-sm text-gray-500">
 									{vehicle.driverAssigned.email}
 								</p>
