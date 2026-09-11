@@ -6,7 +6,6 @@ import {
 	Calendar,
 	ShieldCheck,
 	ShieldX,
-	Phone,
 	MapPin,
 	BriefcaseBusiness,
 	Truck,
@@ -20,6 +19,7 @@ import {
 	getCurrentUser,
 	updateCurrentUser,
 	updateProfilePicture,
+	submitDriverLicense,
 } from "../services/userService";
 
 const Profile = () => {
@@ -28,13 +28,17 @@ const Profile = () => {
 	const [saving, setSaving] = useState(false);
 	const [uploadingPicture, setUploadingPicture] = useState(false);
 	const [editing, setEditing] = useState(false);
+	const [licenseSubmitting, setLicenseSubmitting] = useState(false);
+	const [licenseFile, setLicenseFile] = useState(null);
 	const [formData, setFormData] = useState({
 		name: "",
 		dateOfBirth: "",
-		drivingLicense: "",
-		licenseExpiry: "",
 		driverAddress: "",
 		experience: "",
+	});
+	const [licenseForm, setLicenseForm] = useState({
+		drivingLicense: "",
+		licenseExpiry: "",
 	});
 
 	// Get current user
@@ -47,12 +51,14 @@ const Profile = () => {
 			setFormData({
 				name: data.name || "",
 				dateOfBirth: data.dateOfBirth ? data.dateOfBirth.split("T")[0] : "",
+				driverAddress: data.driverAddress || "",
+				experience: data.experience ?? "",
+			});
+			setLicenseForm({
 				drivingLicense: data.drivingLicense || "",
 				licenseExpiry: data.licenseExpiry
 					? data.licenseExpiry.split("T")[0]
 					: "",
-				driverAddress: data.driverAddress || "",
-				experience: data.experience ?? "",
 			});
 		} catch (error) {
 			console.error("Get profile error:", error);
@@ -68,13 +74,34 @@ const Profile = () => {
 		loadProfile();
 	}, []);
 
-	// Handle input change
+	// Handle profile input change
 	const handleChange = (e) => {
 		const { name, value } = e.target;
 		setFormData((prev) => ({
 			...prev,
 			[name]: value,
 		}));
+	};
+
+	// Handle license input change
+	const handleLicenseChange = (e) => {
+		const { name, value } = e.target;
+		setLicenseForm((prev) => ({
+			...prev,
+			[name]: value,
+		}));
+	};
+
+	// Handle license file
+	const handleLicenseFile = (e) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+		if (!file.type.startsWith("image/")) {
+			toast.error("Please select an image file");
+			e.target.value = "";
+			return;
+		}
+		setLicenseFile(file);
 	};
 
 	// Update profile
@@ -87,8 +114,6 @@ const Profile = () => {
 				dateOfBirth: formData.dateOfBirth || null,
 			};
 			if (user.role === "driver") {
-				data.drivingLicense = formData.drivingLicense;
-				data.licenseExpiry = formData.licenseExpiry || null;
 				data.driverAddress = formData.driverAddress;
 				data.experience = formData.experience;
 			}
@@ -106,6 +131,47 @@ const Profile = () => {
 			toast.error(message);
 		} finally {
 			setSaving(false);
+		}
+	};
+
+	// Submit driving license
+	const handleSubmitLicense = async (e) => {
+		e.preventDefault();
+		if (!licenseForm.drivingLicense || !licenseForm.licenseExpiry) {
+			toast.error("License number and expiry date are required");
+			return;
+		}
+		if (!licenseFile) {
+			toast.error("Please select a license picture");
+			return;
+		}
+		try {
+			setLicenseSubmitting(true);
+			const data = new FormData();
+			data.append("drivingLicense", licenseForm.drivingLicense);
+			data.append("licenseExpiry", licenseForm.licenseExpiry);
+			data.append("drivingLicensePicture", licenseFile);
+			const response = await submitDriverLicense(data);
+			setUser((prev) => ({
+				...prev,
+				drivingLicense: response.drivingLicense,
+				licenseExpiry: response.licenseExpiry,
+				drivingLicensePicture: response.drivingLicensePicture,
+				licenseVerified: response.licenseVerified,
+				licenseRejectionReason: response.licenseRejectionReason,
+			}));
+			setLicenseFile(null);
+			e.target.reset();
+			toast.success(
+				response.message || "Driving license submitted successfully",
+			);
+		} catch (error) {
+			console.error("Submit license error:", error);
+			const message =
+				error.response?.data?.message || "Failed to submit driving license";
+			toast.error(message);
+		} finally {
+			setLicenseSubmitting(false);
 		}
 	};
 
@@ -143,8 +209,6 @@ const Profile = () => {
 		setFormData({
 			name: user.name || "",
 			dateOfBirth: user.dateOfBirth ? user.dateOfBirth.split("T")[0] : "",
-			drivingLicense: user.drivingLicense || "",
-			licenseExpiry: user.licenseExpiry ? user.licenseExpiry.split("T")[0] : "",
 			driverAddress: user.driverAddress || "",
 			experience: user.experience ?? "",
 		});
@@ -420,46 +484,26 @@ const Profile = () => {
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Driving License
 							</label>
-							{editing ? (
-								<input
-									type="text"
-									name="drivingLicense"
-									value={formData.drivingLicense}
-									onChange={handleChange}
-									className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-								/>
-							) : (
-								<div className="flex items-center gap-3 h-11 px-3 bg-gray-50 rounded-lg">
-									<BriefcaseBusiness className="w-4 h-4 text-gray-400" />
-									<span className="text-sm text-gray-700">
-										{user.drivingLicense || "Not provided"}
-									</span>
-								</div>
-							)}
+							<div className="flex items-center gap-3 h-11 px-3 bg-gray-50 rounded-lg">
+								<BriefcaseBusiness className="w-4 h-4 text-gray-400" />
+								<span className="text-sm text-gray-700">
+									{user.drivingLicense || "Not provided"}
+								</span>
+							</div>
 						</div>
 
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								License Expiry
 							</label>
-							{editing ? (
-								<input
-									type="date"
-									name="licenseExpiry"
-									value={formData.licenseExpiry}
-									onChange={handleChange}
-									className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
-								/>
-							) : (
-								<div className="flex items-center gap-3 h-11 px-3 bg-gray-50 rounded-lg">
-									<Calendar className="w-4 h-4 text-gray-400" />
-									<span className="text-sm text-gray-700">
-										{user.licenseExpiry
-											? new Date(user.licenseExpiry).toLocaleDateString()
-											: "Not provided"}
-									</span>
-								</div>
-							)}
+							<div className="flex items-center gap-3 h-11 px-3 bg-gray-50 rounded-lg">
+								<Calendar className="w-4 h-4 text-gray-400" />
+								<span className="text-sm text-gray-700">
+									{user.licenseExpiry
+										? new Date(user.licenseExpiry).toLocaleDateString()
+										: "Not provided"}
+								</span>
+							</div>
 						</div>
 
 						<div>
@@ -501,6 +545,13 @@ const Profile = () => {
 											Verified
 										</span>
 									</>
+								) : user.licenseRejectionReason ? (
+									<>
+										<ShieldX className="w-4 h-4 text-red-500" />
+										<span className="text-sm font-medium text-red-500">
+											Rejected
+										</span>
+									</>
 								) : (
 									<>
 										<ShieldX className="w-4 h-4 text-amber-500" />
@@ -534,6 +585,146 @@ const Profile = () => {
 							)}
 						</div>
 					</div>
+				</div>
+			)}
+
+			{/* DRIVING LICENSE SUBMISSION */}
+			{user.role === "driver" && (
+				<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
+					<div className="flex items-center gap-3 mb-6">
+						<div className="w-9 h-9 rounded-lg bg-violet-50 flex items-center justify-center">
+							<ShieldCheck className="w-4 h-4 text-violet-600" />
+						</div>
+						<div>
+							<h2 className="text-base font-semibold text-gray-900">
+								Driving License Verification
+							</h2>
+							<p className="text-xs text-gray-500">
+								Submit or update your driving license for verification.
+							</p>
+						</div>
+					</div>
+
+					<form onSubmit={handleSubmitLicense}>
+						<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">
+									License Number
+								</label>
+								<input
+									type="text"
+									name="drivingLicense"
+									value={licenseForm.drivingLicense}
+									onChange={handleLicenseChange}
+									placeholder="Enter driving license number"
+									className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+								/>
+							</div>
+
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">
+									License Expiry
+								</label>
+								<input
+									type="date"
+									name="licenseExpiry"
+									value={licenseForm.licenseExpiry}
+									onChange={handleLicenseChange}
+									className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+								/>
+							</div>
+
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">
+									License Picture
+								</label>
+								<input
+									type="file"
+									accept="image/*"
+									onChange={handleLicenseFile}
+									className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm text-gray-600 file:mr-3 file:h-8 file:border-0 file:rounded-md file:bg-violet-50 file:px-3 file:text-sm file:font-medium file:text-violet-700"
+								/>
+								<p className="text-xs text-gray-400 mt-1">
+									Upload a clear image of your driving license.
+								</p>
+							</div>
+
+							<div>
+								<label className="block text-sm font-medium text-gray-700 mb-2">
+									Current Status
+								</label>
+								<div className="flex items-center gap-3 h-11 px-3 bg-gray-50 rounded-lg">
+									{user.licenseVerified ? (
+										<>
+											<ShieldCheck className="w-4 h-4 text-green-600" />
+											<span className="text-sm font-medium text-green-600">
+												Verified
+											</span>
+										</>
+									) : user.licenseRejectionReason ? (
+										<>
+											<ShieldX className="w-4 h-4 text-red-500" />
+											<span className="text-sm font-medium text-red-500">
+												Rejected
+											</span>
+										</>
+									) : (
+										<>
+											<ShieldX className="w-4 h-4 text-amber-500" />
+											<span className="text-sm font-medium text-amber-600">
+												Pending Verification
+											</span>
+										</>
+									)}
+								</div>
+							</div>
+
+							{user.licenseRejectionReason && (
+								<div className="md:col-span-2 bg-red-50 border border-red-200 rounded-lg p-4">
+									<p className="text-sm font-medium text-red-700">
+										Rejection Reason
+									</p>
+									<p className="text-sm text-red-600 mt-1">
+										{user.licenseRejectionReason}
+									</p>
+								</div>
+							)}
+
+							{user.drivingLicensePicture && (
+								<div className="md:col-span-2">
+									<label className="block text-sm font-medium text-gray-700 mb-2">
+										Current License Picture
+									</label>
+									<div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+										<img
+											src={user.drivingLicensePicture}
+											alt="Driving License"
+											className="max-h-64 w-auto rounded-lg object-contain"
+										/>
+									</div>
+								</div>
+							)}
+
+							<div className="md:col-span-2">
+								<button
+									type="submit"
+									disabled={licenseSubmitting}
+									className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition cursor-pointer disabled:opacity-50"
+								>
+									{licenseSubmitting ? (
+										<div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+									) : (
+										<ShieldCheck className="w-4 h-4" />
+									)}
+									{licenseSubmitting
+										? "Submitting..."
+										: user.drivingLicense
+											? "Update License"
+											: "Submit License"}
+								</button>
+							</div>
+						</div>
+					</form>
 				</div>
 			)}
 		</div>

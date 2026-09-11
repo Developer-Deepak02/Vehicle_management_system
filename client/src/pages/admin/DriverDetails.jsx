@@ -218,8 +218,9 @@ const DriverDetails = () => {
 		);
 	}
 
-	const licenseRejected = Boolean(driver.licenseRejectionReason);
-	const licenseVerified = driver.licenseVerified === true && !licenseRejected;
+	const licenseVerified = driver.licenseVerified === true;
+	const licenseRejected =
+		driver.licenseVerified === false && Boolean(driver.licenseRejectionReason);
 	const vehicle = driver.vehicleAssigned;
 
 	return (

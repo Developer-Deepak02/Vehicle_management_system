@@ -60,3 +60,9 @@ export const activateDeactivateVehicle = async (vehicleId) => {
 	const response = await api.patch(`/vehicles/${vehicleId}/status`);
 	return response.data;
 };
+
+// Get my assigned vehicle
+export const getMyVehicle = async () => {
+	const response = await api.get("/vehicles/my-vehicle");
+	return response.data;
+};

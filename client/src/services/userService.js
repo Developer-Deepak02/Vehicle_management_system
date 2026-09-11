@@ -101,3 +101,9 @@ export const verifyDriverLicense = async (driverId, data) => {
 	);
 	return response.data;
 };
+
+// Submit / update driving license
+export const submitDriverLicense = async (formData) => {
+	const response = await api.put("/users/driver-license", formData);
+	return response.data;
+};

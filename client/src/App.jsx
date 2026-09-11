@@ -24,6 +24,7 @@ import EditManager from "./pages/admin/EditManager";
 import Drivers from "./pages/admin/Drivers";
 import DriverDetails from "./pages/admin/DriverDetails";
 import EditDriver from "./pages/admin/EditDriver";
+import MyVehicle from "./pages/driver/MyVehicle";
 
 function App() {
 	return (
@@ -84,6 +85,7 @@ function App() {
 				<Route element={<ProtectedRoute allowedRoles={["driver"]} />}>
 					<Route element={<MainLayout />}>
 						<Route path="/driver/dashboard" element={<DriverDashboard />} />
+						<Route path="/driver/my-vehicle" element={<MyVehicle />} />
 					</Route>
 				</Route>
 			</Routes>
