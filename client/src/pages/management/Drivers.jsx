@@ -10,7 +10,7 @@ import {
 	X,
 	UserRound,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
 	getDrivers,
@@ -19,6 +19,10 @@ import {
 } from "../../services/userService";
 
 const Drivers = () => {
+	const location = useLocation();
+	const isManager = location.pathname.startsWith("/manager");
+	const basePath = isManager ? "/manager/drivers" : "/admin/drivers";
+
 	const [drivers, setDrivers] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [search, setSearch] = useState("");
@@ -34,7 +38,7 @@ const Drivers = () => {
 		totalDrivers: 0,
 	});
 
-  const loadDrivers = async (params = {}) => {
+	const loadDrivers = async (params = {}) => {
 		try {
 			setLoading(true);
 
@@ -197,7 +201,7 @@ const Drivers = () => {
 				</div>
 
 				<Link
-					to="/admin/drivers/add"
+					to={`${basePath}/add`}
 					className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700"
 				>
 					<Plus className="size-4" />
@@ -349,14 +353,14 @@ const Drivers = () => {
 										<td className="px-5 py-4">
 											<div className="flex justify-end items-center gap-2">
 												<Link
-													to={`/admin/drivers/${driver._id}`}
+													to={`${basePath}/${driver._id}`}
 													className="px-3 py-1.5 rounded-lg text-xs font-medium text-violet-700 hover:bg-violet-50"
 												>
 													View
 												</Link>
 
 												<Link
-													to={`/admin/drivers/${driver._id}/edit`}
+													to={`${basePath}/${driver._id}/edit`}
 													className="p-2 rounded-lg text-gray-500 hover:text-violet-700 hover:bg-violet-50"
 													title="Edit"
 												>

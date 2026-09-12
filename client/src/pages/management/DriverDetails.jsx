@@ -13,7 +13,7 @@ import {
 	Check,
 	X,
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getDriver, verifyDriverLicense } from "../../services/userService";
 import {
@@ -24,6 +24,11 @@ import {
 
 const DriverDetails = () => {
 	const { id } = useParams();
+	const location = useLocation();
+
+	const isManager = location.pathname.startsWith("/manager");
+	const basePath = isManager ? "/manager/drivers" : "/admin/drivers";
+
 	const [driver, setDriver] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [verificationLoading, setVerificationLoading] = useState(false);
@@ -41,6 +46,7 @@ const DriverDetails = () => {
 		const loadDriver = async () => {
 			try {
 				setLoading(true);
+
 				const data = await getDriver(id);
 				setDriver(data);
 			} catch (error) {
@@ -55,6 +61,7 @@ const DriverDetails = () => {
 
 	const formatDate = (date) => {
 		if (!date) return "—";
+
 		return new Date(date).toLocaleDateString("en-IN", {
 			day: "2-digit",
 			month: "short",
@@ -164,6 +171,7 @@ const DriverDetails = () => {
 			);
 
 			const updatedDriver = await getDriver(id).catch(() => null);
+
 			if (updatedDriver) {
 				setDriver(updatedDriver);
 			}
@@ -173,12 +181,12 @@ const DriverDetails = () => {
 	};
 
 	const handleUnassignVehicle = async () => {
-		if (!vehicle) return;
+		if (!driver?.vehicleAssigned) return;
 
 		try {
 			setUnassignLoading(true);
 
-			await unassignVehicle(vehicle._id);
+			await unassignVehicle(driver.vehicleAssigned._id);
 
 			toast.success("Vehicle unassigned successfully");
 
@@ -209,7 +217,7 @@ const DriverDetails = () => {
 				<p className="text-gray-500 mb-4">Driver not found.</p>
 
 				<Link
-					to="/admin/drivers"
+					to={basePath}
 					className="text-sm text-violet-600 hover:text-violet-700"
 				>
 					Back to Drivers
@@ -228,7 +236,7 @@ const DriverDetails = () => {
 			{/* Header */}
 			<div className="mb-6">
 				<Link
-					to="/admin/drivers"
+					to={basePath}
 					className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4"
 				>
 					<ArrowLeft className="size-4" />
@@ -271,7 +279,7 @@ const DriverDetails = () => {
 					</div>
 
 					<Link
-						to={`/admin/drivers/${driver._id}/edit`}
+						to={`${basePath}/${driver._id}/edit`}
 						className="inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-violet-600 text-white text-sm font-medium hover:bg-violet-700"
 					>
 						Edit Driver
@@ -570,6 +578,7 @@ const DriverDetails = () => {
 							<div className="mt-4 space-y-2">
 								<div className="flex justify-between text-sm">
 									<span className="text-gray-500">Vehicle Name</span>
+
 									<span className="font-medium text-gray-900">
 										{vehicle.vehicleName || "—"}
 									</span>
@@ -577,6 +586,7 @@ const DriverDetails = () => {
 
 								<div className="flex justify-between text-sm">
 									<span className="text-gray-500">Model</span>
+
 									<span className="font-medium text-gray-900">
 										{vehicle.vehicleModel || "—"}
 									</span>
@@ -584,6 +594,7 @@ const DriverDetails = () => {
 
 								<div className="flex justify-between text-sm">
 									<span className="text-gray-500">Year</span>
+
 									<span className="font-medium text-gray-900">
 										{vehicle.vehicleYear || "—"}
 									</span>
@@ -591,6 +602,7 @@ const DriverDetails = () => {
 
 								<div className="flex justify-between text-sm">
 									<span className="text-gray-500">Assigned On</span>
+
 									<span className="font-medium text-gray-900">
 										{formatDate(driver.vehicleAssignedOn)}
 									</span>

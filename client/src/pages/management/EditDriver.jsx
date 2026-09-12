@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Save, UserRound } from "lucide-react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getDriver, updateUser } from "../../services/userService";
 
 const EditDriver = () => {
 	const { id } = useParams();
+	const location = useLocation();
 	const navigate = useNavigate();
+
+	const isManager = location.pathname.startsWith("/manager");
+	const basePath = isManager ? "/manager/drivers" : "/admin/drivers";
 
 	const [formData, setFormData] = useState({
 		name: "",
@@ -27,7 +31,7 @@ const EditDriver = () => {
 
 				if (data.role !== "driver") {
 					toast.error("User is not a driver");
-					navigate("/admin/drivers");
+					navigate(basePath);
 					return;
 				}
 
@@ -41,14 +45,14 @@ const EditDriver = () => {
 				});
 			} catch (error) {
 				toast.error(error.response?.data?.message || "Failed to load driver");
-				navigate("/admin/drivers");
+				navigate(basePath);
 			} finally {
 				setLoading(false);
 			}
 		};
 
 		loadDriver();
-	}, [id, navigate]);
+	}, [id, navigate, basePath]);
 
 	const handleChange = (e) => {
 		setFormData({
@@ -76,7 +80,7 @@ const EditDriver = () => {
 
 			toast.success("Driver updated successfully");
 
-			navigate(`/admin/drivers/${id}`);
+			navigate(`${basePath}/${id}`);
 		} catch (error) {
 			toast.error(error.response?.data?.message || "Failed to update driver");
 		} finally {
@@ -97,7 +101,7 @@ const EditDriver = () => {
 			{/* Header */}
 			<div className="mb-6">
 				<Link
-					to={`/admin/drivers/${id}`}
+					to={`${basePath}/${id}`}
 					className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-4"
 				>
 					<ArrowLeft className="size-4" />
@@ -196,7 +200,7 @@ const EditDriver = () => {
 					{/* Buttons */}
 					<div className="flex justify-end gap-3 pt-2">
 						<Link
-							to={`/admin/drivers/${id}`}
+							to={`${basePath}/${id}`}
 							className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50"
 						>
 							Cancel

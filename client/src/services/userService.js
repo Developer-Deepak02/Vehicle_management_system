@@ -107,3 +107,8 @@ export const submitDriverLicense = async (formData) => {
 	const response = await api.put("/users/driver-license", formData);
 	return response.data;
 };
+
+export const createDriver = async (data) => {
+	const response = await api.post("/users/create-driver", data);
+	return response.data;
+};
