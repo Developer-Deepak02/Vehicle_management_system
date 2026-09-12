@@ -1,5 +1,261 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import {
+	Truck,
+	UserRound,
+	CheckCircle2,
+	CircleAlert,
+	CarFront,
+	UserCheck,
+	UserX,
+} from "lucide-react";
+import { getManagerDashboard } from "../../services/dashboardService";
+
+const StatCard = ({ title, value, description, icon: Icon, onClick }) => {
+	return (
+		<div
+			onClick={onClick}
+			className={`bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow ${
+				onClick ? "cursor-pointer" : ""
+			}`}
+		>
+			<div className="flex items-start justify-between">
+				<div>
+					<p className="text-sm font-medium text-gray-500">{title}</p>
+					<p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+					{description && (
+						<p className="text-xs text-gray-500 mt-2">{description}</p>
+					)}
+				</div>
+
+				<div className="w-11 h-11 rounded-xl bg-violet-50 flex items-center justify-center">
+					<Icon className="w-5 h-5 text-violet-700" />
+				</div>
+			</div>
+		</div>
+	);
+};
+
+const OverviewItem = ({ label, value, icon: Icon }) => {
+	return (
+		<div className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
+			<div className="flex items-center gap-3">
+				<div className="w-9 h-9 rounded-lg bg-gray-100 flex items-center justify-center">
+					<Icon className="w-4 h-4 text-gray-600" />
+				</div>
+
+				<span className="text-sm text-gray-600">{label}</span>
+			</div>
+
+			<span className="font-semibold text-gray-900">{value}</span>
+		</div>
+	);
+};
+
 const ManagerDashboard = () => {
-	return <h1>Manager Dashboard</h1>;
+	const navigate = useNavigate();
+	const [dashboard, setDashboard] = useState(null);
+	const [loading, setLoading] = useState(true);
+
+	useEffect(() => {
+		const fetchDashboard = async () => {
+			try {
+				setLoading(true);
+				const data = await getManagerDashboard();
+				setDashboard(data);
+			} catch (error) {
+				console.error("Manager dashboard error:", error);
+
+				const message =
+					error.response?.data?.message || "Failed to load dashboard";
+
+				toast.error(message);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchDashboard();
+	}, []);
+
+	if (loading) {
+		return (
+			<div className="flex items-center justify-center min-h-96">
+				<div className="text-center">
+					<div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin mx-auto" />
+
+					<p className="text-sm text-gray-500 mt-3">Loading dashboard...</p>
+				</div>
+			</div>
+		);
+	}
+
+	if (!dashboard) {
+		return (
+			<div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
+				<p className="text-gray-500">Unable to load dashboard data.</p>
+			</div>
+		);
+	}
+
+	return (
+		<div className="space-y-8">
+			{/* Header */}
+			<div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+				<div>
+					<h1 className="text-2xl font-bold text-gray-900">
+						Manager Dashboard
+					</h1>
+
+					<p className="text-sm text-gray-500 mt-1">
+						Monitor your vehicles and drivers from one place.
+					</p>
+				</div>
+
+				<div className="flex items-center gap-2 text-sm text-gray-500">
+					<div className="w-2 h-2 rounded-full bg-green-500" />
+					System overview
+				</div>
+			</div>
+
+			{/* Main Stats */}
+			<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+				<StatCard
+					title="Total Vehicles"
+					value={dashboard.vehicles.total}
+					description={`${dashboard.vehicles.active} currently active`}
+					icon={Truck}
+					onClick={() => navigate("/manager/vehicles")}
+				/>
+
+				<StatCard
+					title="Total Drivers"
+					value={dashboard.drivers.total}
+					description={`${dashboard.drivers.active} currently active`}
+					icon={UserRound}
+					onClick={() => navigate("/manager/drivers")}
+				/>
+
+				<StatCard
+					title="Vehicles Added By Me"
+					value={dashboard.vehicles.addedByManager}
+					description="Vehicles added by you"
+					icon={CarFront}
+					onClick={() => navigate("/manager/vehicles")}
+				/>
+
+				<StatCard
+					title="Drivers Added By Me"
+					value={dashboard.drivers.addedByManager}
+					description="Drivers added by you"
+					icon={UserCheck}
+					onClick={() => navigate("/manager/drivers")}
+				/>
+
+				<StatCard
+					title="Unassigned Vehicles"
+					value={dashboard.vehicles.available}
+					description="Currently available"
+					icon={Truck}
+					onClick={() => navigate("/manager/vehicles")}
+				/>
+
+				<StatCard
+					title="Unassigned Drivers"
+					value={dashboard.drivers.unassigned}
+					description="Drivers without a vehicle"
+					icon={UserX}
+					onClick={() => navigate("/manager/drivers")}
+				/>
+			</div>
+
+			{/* Vehicle + Driver Overview */}
+			<div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+				{/* Vehicle Overview */}
+				<div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+					<div className="flex items-center justify-between mb-4">
+						<div>
+							<h2 className="font-semibold text-gray-900">Vehicle Overview</h2>
+
+							<p className="text-xs text-gray-500 mt-1">
+								Current vehicle status
+							</p>
+						</div>
+
+						<div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
+							<Truck className="w-5 h-5 text-violet-700" />
+						</div>
+					</div>
+
+					<OverviewItem
+						label="Active Vehicles"
+						value={dashboard.vehicles.active}
+						icon={CheckCircle2}
+					/>
+
+					<OverviewItem
+						label="Available Vehicles"
+						value={dashboard.vehicles.available}
+						icon={CarFront}
+					/>
+
+					<OverviewItem
+						label="Assigned Vehicles"
+						value={dashboard.vehicles.assigned}
+						icon={UserCheck}
+					/>
+
+					<OverviewItem
+						label="Inactive Vehicles"
+						value={dashboard.vehicles.inactive}
+						icon={CircleAlert}
+					/>
+				</div>
+
+				{/* Driver Overview */}
+				<div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
+					<div className="flex items-center justify-between mb-4">
+						<div>
+							<h2 className="font-semibold text-gray-900">Driver Overview</h2>
+
+							<p className="text-xs text-gray-500 mt-1">
+								Current driver status
+							</p>
+						</div>
+
+						<div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
+							<UserRound className="w-5 h-5 text-violet-700" />
+						</div>
+					</div>
+
+					<OverviewItem
+						label="Active Drivers"
+						value={dashboard.drivers.active}
+						icon={CheckCircle2}
+					/>
+
+					<OverviewItem
+						label="Assigned Drivers"
+						value={dashboard.drivers.assigned}
+						icon={UserCheck}
+					/>
+
+					<OverviewItem
+						label="Unassigned Drivers"
+						value={dashboard.drivers.unassigned}
+						icon={UserX}
+					/>
+
+					<OverviewItem
+						label="Inactive Drivers"
+						value={dashboard.drivers.inactive}
+						icon={CircleAlert}
+					/>
+				</div>
+			</div>
+		</div>
+	);
 };
 
 export default ManagerDashboard;

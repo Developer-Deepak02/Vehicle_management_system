@@ -123,8 +123,7 @@ export const getAdminDashboard = async (req, res) => {
 		});
 		const managersInvitedNotJoined = await User.countDocuments({
 			role: "manager",
-			isVerified: false,
-			invitationToken: { $ne: null },
+			joinedOn: null,
 		});
 		const vehiclesAddedByManagers = await Vehicle.countDocuments({
 			createdBy: {

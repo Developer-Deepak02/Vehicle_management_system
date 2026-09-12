@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import {
 	Truck,
@@ -13,9 +14,14 @@ import {
 } from "lucide-react";
 import { getAdminDashboard } from "../../services/dashboardService";
 
-const StatCard = ({ title, value, description, icon: Icon }) => {
+const StatCard = ({ title, value, description, icon: Icon, onClick }) => {
 	return (
-		<div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow">
+		<div
+			onClick={onClick}
+			className={`bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow ${
+				onClick ? "cursor-pointer" : ""
+			}`}
+		>
 			<div className="flex items-start justify-between">
 				<div>
 					<p className="text-sm font-medium text-gray-500">{title}</p>
@@ -47,6 +53,7 @@ const OverviewItem = ({ label, value, icon: Icon }) => {
 };
 
 const AdminDashboard = () => {
+	const navigate = useNavigate();
 	const [dashboard, setDashboard] = useState(null);
 	const [loading, setLoading] = useState(true);
 
@@ -65,6 +72,7 @@ const AdminDashboard = () => {
 				setLoading(false);
 			}
 		};
+
 		fetchDashboard();
 	}, []);
 
@@ -78,6 +86,7 @@ const AdminDashboard = () => {
 			</div>
 		);
 	}
+
 	if (!dashboard) {
 		return (
 			<div className="bg-white rounded-2xl border border-gray-200 p-8 text-center">
@@ -96,11 +105,13 @@ const AdminDashboard = () => {
 						Monitor your vehicles, drivers and managers from one place.
 					</p>
 				</div>
+
 				<div className="flex items-center gap-2 text-sm text-gray-500">
 					<div className="w-2 h-2 rounded-full bg-green-500" />
 					System overview
 				</div>
 			</div>
+
 			{/* Main Stats */}
 			<div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
 				<StatCard
@@ -108,26 +119,66 @@ const AdminDashboard = () => {
 					value={dashboard.vehicles.total}
 					description={`${dashboard.vehicles.active} currently active`}
 					icon={Truck}
+					onClick={() => navigate("/admin/vehicles")}
 				/>
+
 				<StatCard
 					title="Total Drivers"
 					value={dashboard.drivers.total}
 					description={`${dashboard.drivers.active} currently active`}
 					icon={UserRound}
+					onClick={() => navigate("/admin/drivers")}
 				/>
+
 				<StatCard
 					title="Total Managers"
 					value={dashboard.managers.total}
 					description={`${dashboard.managers.active} currently active`}
 					icon={Users}
+					onClick={() => navigate("/admin/managers")}
 				/>
+
 				<StatCard
-					title="Available Vehicles"
-					value={dashboard.vehicles.available}
-					description={`${dashboard.vehicles.assigned} currently assigned`}
+					title="Vehicles Added By Managers"
+					value={dashboard.vehicles.addedByManagers}
+					description="Vehicles added by managers"
 					icon={CarFront}
+					onClick={() => navigate("/admin/vehicles")}
+				/>
+
+				<StatCard
+					title="Drivers Added By Managers"
+					value={dashboard.drivers.addedByManagers}
+					description="Drivers added by managers"
+					icon={UserCheck}
+					onClick={() => navigate("/admin/drivers")}
+				/>
+
+				<StatCard
+					title="Unassigned Vehicles"
+					value={dashboard.vehicles.available}
+					description="Currently available"
+					icon={Truck}
+					onClick={() => navigate("/admin/vehicles")}
+				/>
+
+				<StatCard
+					title="Unassigned Drivers"
+					value={dashboard.drivers.unassigned}
+					description="Drivers without a vehicle"
+					icon={UserX}
+					onClick={() => navigate("/admin/drivers")}
+				/>
+
+				<StatCard
+					title="Managers Not Joined"
+					value={dashboard.managers.invitedNotJoined}
+					description="Invited but not joined"
+					icon={Clock3}
+					onClick={() => navigate("/admin/managers")}
 				/>
 			</div>
+
 			{/* Vehicle + Driver Overview */}
 			<div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 				{/* Vehicle Overview */}
@@ -139,31 +190,37 @@ const AdminDashboard = () => {
 								Current vehicle status
 							</p>
 						</div>
+
 						<div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
 							<Truck className="w-5 h-5 text-violet-700" />
 						</div>
 					</div>
+
 					<OverviewItem
 						label="Active Vehicles"
 						value={dashboard.vehicles.active}
 						icon={CheckCircle2}
 					/>
+
 					<OverviewItem
 						label="Available Vehicles"
 						value={dashboard.vehicles.available}
 						icon={CarFront}
 					/>
+
 					<OverviewItem
 						label="Assigned Vehicles"
 						value={dashboard.vehicles.assigned}
 						icon={UserCheck}
 					/>
+
 					<OverviewItem
 						label="Inactive Vehicles"
 						value={dashboard.vehicles.inactive}
 						icon={CircleAlert}
 					/>
 				</div>
+
 				{/* Driver Overview */}
 				<div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
 					<div className="flex items-center justify-between mb-4">
@@ -173,25 +230,30 @@ const AdminDashboard = () => {
 								Current driver status
 							</p>
 						</div>
+
 						<div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
 							<UserRound className="w-5 h-5 text-violet-700" />
 						</div>
 					</div>
+
 					<OverviewItem
 						label="Active Drivers"
 						value={dashboard.drivers.active}
 						icon={CheckCircle2}
 					/>
+
 					<OverviewItem
 						label="Assigned Drivers"
 						value={dashboard.drivers.assigned}
 						icon={UserCheck}
 					/>
+
 					<OverviewItem
 						label="Unassigned Drivers"
 						value={dashboard.drivers.unassigned}
 						icon={UserX}
 					/>
+
 					<OverviewItem
 						label="Inactive Drivers"
 						value={dashboard.drivers.inactive}
@@ -199,6 +261,7 @@ const AdminDashboard = () => {
 					/>
 				</div>
 			</div>
+
 			{/* Manager Overview */}
 			<div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
 				<div className="flex items-center justify-between mb-5">
@@ -206,34 +269,41 @@ const AdminDashboard = () => {
 						<h2 className="font-semibold text-gray-900">Manager Overview</h2>
 						<p className="text-xs text-gray-500 mt-1">Manager account status</p>
 					</div>
+
 					<div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center">
 						<Users className="w-5 h-5 text-violet-700" />
 					</div>
 				</div>
+
 				<div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
 					<div className="bg-gray-50 rounded-xl p-4">
 						<div className="flex items-center gap-3">
 							<CheckCircle2 className="w-5 h-5 text-green-600" />
 							<span className="text-sm text-gray-600">Active</span>
 						</div>
+
 						<p className="text-2xl font-bold text-gray-900 mt-3">
 							{dashboard.managers.active}
 						</p>
 					</div>
+
 					<div className="bg-gray-50 rounded-xl p-4">
 						<div className="flex items-center gap-3">
 							<CircleAlert className="w-5 h-5 text-red-500" />
 							<span className="text-sm text-gray-600">Inactive</span>
 						</div>
+
 						<p className="text-2xl font-bold text-gray-900 mt-3">
 							{dashboard.managers.inactive}
 						</p>
 					</div>
+
 					<div className="bg-gray-50 rounded-xl p-4">
 						<div className="flex items-center gap-3">
 							<Clock3 className="w-5 h-5 text-amber-500" />
 							<span className="text-sm text-gray-600">Invited</span>
 						</div>
+
 						<p className="text-2xl font-bold text-gray-900 mt-3">
 							{dashboard.managers.invitedNotJoined}
 						</p>
