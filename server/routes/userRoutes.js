@@ -37,7 +37,7 @@ router.get("/drivers/:id", protect, adminAndManager, getDriver);
 router.get("/user/:id", protect, adminAndManager, getUserById);
 router.patch("/status/:id", protect, adminAndManager, activateDeactivate);
 router.put("/update-user/:id", protect, adminAndManager, updateUser);
-router.delete("/delete-user/:id", protect, admin, deleteUser);
+router.delete("/delete-user/:id", protect, adminAndManager, deleteUser);
 router.post("/accept-invitation", acceptInvitation);
 router.put("/change-password", protect, changePassword);
 router.put(

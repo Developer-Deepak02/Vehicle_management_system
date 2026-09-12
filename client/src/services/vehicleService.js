@@ -66,3 +66,8 @@ export const getMyVehicle = async () => {
 	const response = await api.get("/vehicles/my-vehicle");
 	return response.data;
 };
+
+export const deleteVehicle = async (vehicleId) => {
+	const response = await api.delete(`/vehicles/delete-vehicle/${vehicleId}`);
+	return response.data;
+};

@@ -44,12 +44,13 @@ router.get("/:id", protect, adminAndManager, getVehicle);
 router.put(
 	"/update-vehicle/:id",
 	protect,
-	admin,
+	adminAndManager,
 	upload.array("vehiclePhotos", 5),
 	uploadErrorHandler,
 	updateVehicle,
 );
-router.delete("/delete-vehicle/:id", protect, admin, deleteVehicle);
+
+router.delete("/delete-vehicle/:id", protect, adminAndManager, deleteVehicle);
 router.put("/:id/assign", protect, adminAndManager, assignVehicle);
 router.put("/:id/unassign", protect, adminAndManager, unassignVehicle);
 router.patch(

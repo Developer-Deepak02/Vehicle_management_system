@@ -10,10 +10,12 @@ import {
 	Power,
 	PowerOff,
 	X,
+	CircleAlert,
 } from "lucide-react";
 import {
 	getAllVehicles,
 	activateDeactivateVehicle,
+	deleteVehicle,
 } from "../../services/vehicleService";
 import { Link } from "react-router-dom";
 
@@ -26,6 +28,8 @@ const Vehicles = () => {
 	const [active, setActive] = useState("");
 	const [selectedVehicle, setSelectedVehicle] = useState(null);
 	const [statusLoading, setStatusLoading] = useState(false);
+	const [deleteLoading, setDeleteLoading] = useState(false);
+	const [showDeleteModal, setShowDeleteModal] = useState(false);
 	const [pagination, setPagination] = useState({
 		currentPage: 1,
 		limit: 10,
@@ -102,6 +106,26 @@ const Vehicles = () => {
 		}
 	};
 
+	// Delete vehicle
+	const handleDeleteVehicle = async () => {
+		if (!selectedVehicle) return;
+		try {
+			setDeleteLoading(true);
+			const data = await deleteVehicle(selectedVehicle._id);
+			toast.success(data.message || "Vehicle deleted successfully");
+			setSelectedVehicle(null);
+			setShowDeleteModal(false);
+			await handleSearch(pagination.currentPage);
+		} catch (error) {
+			console.error("Delete vehicle error:", error);
+			const message =
+				error.response?.data?.message || "Failed to delete vehicle";
+			toast.error(message);
+		} finally {
+			setDeleteLoading(false);
+		}
+	};
+
 	// Loading
 	if (loading) {
 		return (
@@ -113,6 +137,7 @@ const Vehicles = () => {
 			</div>
 		);
 	}
+
 	return (
 		<div className="space-y-6">
 			{/* PAGE HEADER */}
@@ -131,6 +156,7 @@ const Vehicles = () => {
 					Add Vehicle
 				</Link>
 			</div>
+
 			{/* SEARCH + FILTERS */}
 			<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
 				{/* Filter header */}
@@ -147,6 +173,7 @@ const Vehicles = () => {
 						</p>
 					</div>
 				</div>
+
 				<div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
 					{/* Search */}
 					<div className="relative lg:col-span-5">
@@ -164,6 +191,7 @@ const Vehicles = () => {
 							className="w-full h-11 pl-10 pr-4 border border-gray-300 rounded-lg text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 						/>
 					</div>
+
 					{/* Status */}
 					<div className="lg:col-span-2">
 						<select
@@ -176,6 +204,7 @@ const Vehicles = () => {
 							<option value="assigned">Assigned</option>
 						</select>
 					</div>
+
 					{/* Vehicle Type */}
 					<div className="lg:col-span-2">
 						<select
@@ -188,6 +217,7 @@ const Vehicles = () => {
 							<option value="HMV">HMV</option>
 						</select>
 					</div>
+
 					{/* Activity */}
 					<div className="lg:col-span-2">
 						<select
@@ -200,6 +230,7 @@ const Vehicles = () => {
 							<option value="false">Inactive</option>
 						</select>
 					</div>
+
 					{/* Search Button */}
 					<div className="lg:col-span-1">
 						<button
@@ -210,12 +241,14 @@ const Vehicles = () => {
 						</button>
 					</div>
 				</div>
+
 				{/* Bottom filter actions */}
 				<div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
 					<p className="text-xs text-gray-500">
 						{pagination.totalVehicles} vehicle
 						{pagination.totalVehicles !== 1 ? "s" : ""} found
 					</p>
+
 					<button
 						onClick={handleClearFilters}
 						className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-violet-600 transition cursor-pointer"
@@ -254,6 +287,7 @@ const Vehicles = () => {
 										</th>
 									</tr>
 								</thead>
+
 								<tbody className="divide-y divide-gray-100">
 									{vehicles.map((vehicle) => (
 										<tr
@@ -261,16 +295,17 @@ const Vehicles = () => {
 											className="hover:bg-gray-50 transition"
 										>
 											{/* Vehicle */}
-
 											<td className="px-6 py-4">
 												<div className="flex items-center gap-3">
 													<div className="w-10 h-10 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
 														<Truck className="w-5 h-5 text-violet-700" />
 													</div>
+
 													<div>
 														<p className="font-medium text-gray-900">
 															{vehicle.vehicleName}
 														</p>
+
 														<p className="text-xs text-gray-500">
 															{vehicle.vehicleModel} • {vehicle.vehicleYear}
 														</p>
@@ -279,13 +314,11 @@ const Vehicles = () => {
 											</td>
 
 											{/* Registration */}
-
 											<td className="px-6 py-4 text-gray-700">
 												{vehicle.registrationNumber}
 											</td>
 
 											{/* Type */}
-
 											<td className="px-6 py-4">
 												<span className="text-gray-700">
 													{vehicle.vehicleType}
@@ -293,7 +326,6 @@ const Vehicles = () => {
 											</td>
 
 											{/* Status */}
-
 											<td className="px-6 py-4">
 												<div className="flex flex-col items-start gap-1">
 													<span
@@ -305,12 +337,10 @@ const Vehicles = () => {
 													>
 														{vehicle.status}
 													</span>
-													
 												</div>
 											</td>
 
 											{/* Driver */}
-
 											<td className="px-6 py-4">
 												{vehicle.driverAssigned ? (
 													<div>
@@ -328,7 +358,6 @@ const Vehicles = () => {
 											</td>
 
 											{/* Action */}
-
 											<td className="px-6 py-4 text-right">
 												<div className="inline-flex items-center gap-2">
 													<Link
@@ -338,6 +367,30 @@ const Vehicles = () => {
 														<Eye className="w-4 h-4" />
 														View
 													</Link>
+
+													<Link
+														to={`/admin/vehicles/${vehicle._id}/edit`}
+														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-blue-600 hover:bg-blue-50 transition"
+													>
+														Edit
+													</Link>
+
+													<button
+														onClick={() => {
+															setSelectedVehicle(vehicle);
+															setShowDeleteModal(true);
+														}}
+														disabled={vehicle.status === "assigned"}
+														title={
+															vehicle.status === "assigned"
+																? "Unassign the vehicle before deleting it"
+																: "Delete vehicle"
+														}
+														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
+													>
+														Delete
+													</button>
+
 													<button
 														onClick={() => setSelectedVehicle(vehicle)}
 														disabled={
@@ -377,7 +430,6 @@ const Vehicles = () => {
 						</div>
 
 						{/* PAGINATION */}
-
 						{pagination.totalPages > 0 && (
 							<div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-200">
 								<p className="text-sm text-gray-500">
@@ -390,6 +442,7 @@ const Vehicles = () => {
 										{pagination.totalPages}
 									</span>
 								</p>
+
 								<div className="flex items-center gap-2">
 									<button
 										onClick={() => handleSearch(pagination.currentPage - 1)}
@@ -398,9 +451,11 @@ const Vehicles = () => {
 									>
 										Previous
 									</button>
+
 									<div className="min-w-10 h-9 flex items-center justify-center px-3 bg-violet-600 text-white rounded-lg text-sm font-medium">
 										{pagination.currentPage}
 									</div>
+
 									<button
 										onClick={() => handleSearch(pagination.currentPage + 1)}
 										disabled={pagination.currentPage === pagination.totalPages}
@@ -418,7 +473,9 @@ const Vehicles = () => {
 						<div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
 							<Truck className="w-7 h-7 text-gray-400" />
 						</div>
+
 						<p className="text-gray-700 font-medium mt-4">No vehicles found</p>
+
 						<p className="text-sm text-gray-400 mt-1">
 							Try changing your search or filters.
 						</p>
@@ -427,12 +484,13 @@ const Vehicles = () => {
 			</div>
 
 			{/* STATUS CONFIRMATION MODAL */}
-			{selectedVehicle && (
+			{selectedVehicle && !showDeleteModal && (
 				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
 					<div
 						className="absolute inset-0 bg-black/40 backdrop-blur-sm"
 						onClick={() => !statusLoading && setSelectedVehicle(null)}
 					/>
+
 					<div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
 						<button
 							onClick={() => !statusLoading && setSelectedVehicle(null)}
@@ -441,6 +499,7 @@ const Vehicles = () => {
 						>
 							<X className="w-5 h-5" />
 						</button>
+
 						<div
 							className={`w-12 h-12 rounded-xl flex items-center justify-center ${
 								selectedVehicle.active ? "bg-red-50" : "bg-green-50"
@@ -452,11 +511,13 @@ const Vehicles = () => {
 								<Power className="w-6 h-6 text-green-600" />
 							)}
 						</div>
+
 						<h2 className="text-lg font-semibold text-gray-900 mt-4">
 							{selectedVehicle.active
 								? "Deactivate vehicle?"
 								: "Activate vehicle?"}
 						</h2>
+
 						<p className="text-sm text-gray-500 mt-2 leading-6">
 							Are you sure you want to{" "}
 							{selectedVehicle.active ? "deactivate" : "activate"}{" "}
@@ -465,6 +526,7 @@ const Vehicles = () => {
 							</span>
 							?
 						</p>
+
 						{selectedVehicle.active &&
 							selectedVehicle.status === "assigned" && (
 								<div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700">
@@ -472,6 +534,7 @@ const Vehicles = () => {
 									before deactivating.
 								</div>
 							)}
+
 						<div className="flex justify-end gap-3 mt-6">
 							<button
 								onClick={() => setSelectedVehicle(null)}
@@ -480,6 +543,7 @@ const Vehicles = () => {
 							>
 								Cancel
 							</button>
+
 							<button
 								onClick={handleStatusChange}
 								disabled={
@@ -502,6 +566,70 @@ const Vehicles = () => {
 									"Deactivate"
 								) : (
 									"Activate"
+								)}
+							</button>
+						</div>
+					</div>
+				</div>
+			)}
+
+			{/* DELETE CONFIRMATION MODAL */}
+			{showDeleteModal && selectedVehicle && (
+				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+					<div
+						className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+						onClick={() => !deleteLoading && setShowDeleteModal(false)}
+					/>
+
+					<div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
+						<button
+							onClick={() => !deleteLoading && setShowDeleteModal(false)}
+							disabled={deleteLoading}
+							className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-40"
+						>
+							<X className="w-5 h-5" />
+						</button>
+
+						<div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+							<CircleAlert className="w-6 h-6 text-red-600" />
+						</div>
+
+						<h2 className="text-lg font-semibold text-gray-900 mt-4">
+							Delete vehicle?
+						</h2>
+
+						<p className="text-sm text-gray-500 mt-2 leading-6">
+							Are you sure you want to delete{" "}
+							<span className="font-semibold text-gray-700">
+								{selectedVehicle.vehicleName}
+							</span>
+							? This action cannot be undone.
+						</p>
+
+						<div className="flex justify-end gap-3 mt-6">
+							<button
+								onClick={() => {
+									setShowDeleteModal(false);
+									setSelectedVehicle(null);
+								}}
+								disabled={deleteLoading}
+								className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
+							>
+								Cancel
+							</button>
+
+							<button
+								onClick={handleDeleteVehicle}
+								disabled={deleteLoading}
+								className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition disabled:opacity-50"
+							>
+								{deleteLoading ? (
+									<>
+										<div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+										Deleting...
+									</>
+								) : (
+									"Delete Vehicle"
 								)}
 							</button>
 						</div>
