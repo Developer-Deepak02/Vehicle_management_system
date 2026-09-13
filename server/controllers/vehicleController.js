@@ -109,6 +109,7 @@ export const getAllVehicles = async (req, res) => {
 		// Get vehicles
 		const vehicles = await Vehicle.find(filter)
 			.populate("driverAssigned", "name email")
+			.populate("createdBy", "name email")
 			.sort({ updatedOn: -1 })
 			.skip(skip)
 			.limit(limitNumber);
@@ -131,13 +132,11 @@ export const getAllVehicles = async (req, res) => {
 };
 
 // get vehicle
-
 export const getVehicle = async (req, res) => {
 	try {
-		const vehicle = await Vehicle.findById(req.params.id).populate(
-			"driverAssigned",
-			"name email",
-		);
+		const vehicle = await Vehicle.findById(req.params.id)
+			.populate("driverAssigned", "name email")
+			.populate("createdBy", "name email");
 		if (!vehicle) {
 			return res.status(404).json({
 				message: "Vehicle not found",

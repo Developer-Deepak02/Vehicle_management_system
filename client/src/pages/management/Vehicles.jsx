@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import {
 	Truck,
@@ -7,16 +7,8 @@ import {
 	Search,
 	SlidersHorizontal,
 	RotateCcw,
-	Power,
-	PowerOff,
-	X,
-	CircleAlert,
 } from "lucide-react";
-import {
-	getAllVehicles,
-	activateDeactivateVehicle,
-	deleteVehicle,
-} from "../../services/vehicleService";
+import { getAllVehicles } from "../../services/vehicleService";
 import { Link, useLocation } from "react-router-dom";
 
 const Vehicles = () => {
@@ -29,41 +21,22 @@ const Vehicles = () => {
 	const [status, setStatus] = useState("");
 	const [vehicleType, setVehicleType] = useState("");
 	const [active, setActive] = useState("");
-	const [selectedVehicle, setSelectedVehicle] = useState(null);
-	const [statusLoading, setStatusLoading] = useState(false);
-	const [deleteLoading, setDeleteLoading] = useState(false);
-	const [showDeleteModal, setShowDeleteModal] = useState(false);
-	const [pagination, setPagination] = useState({
-		currentPage: 1,
-		limit: 10,
-		totalVehicles: 0,
-		totalPages: 0,
-	});
+	const [createdBy, setCreatedBy] = useState("");
+	const [vehicleYear, setVehicleYear] = useState("");
+	const [currentPage, setCurrentPage] = useState(1);
 
-	// Get vehicles
-	const handleSearch = async (pageNumber = 1) => {
+	const itemsPerPage = 10;
+
+	// Get all vehicles
+	const handleSearch = async () => {
 		try {
 			setLoading(true);
 			const params = {
-				page: pageNumber,
-				limit: 10,
+				limit: 1000,
 			};
-			if (search.trim()) {
-				params.search = search.trim();
-			}
-			if (status) {
-				params.status = status;
-			}
-			if (vehicleType) {
-				params.vehicleType = vehicleType;
-			}
-			if (active !== "") {
-				params.active = active;
-			}
 			const data = await getAllVehicles(params);
 			console.log("Vehicles response:", data);
-			setVehicles(data.vehicles);
-			setPagination(data.pagination);
+			setVehicles(data.vehicles || []);
 		} catch (error) {
 			console.error("Get vehicles error:", error);
 			const message =
@@ -76,8 +49,80 @@ const Vehicles = () => {
 
 	// Initial load
 	useEffect(() => {
-		handleSearch(1);
+		handleSearch();
 	}, []);
+
+	// Get unique creators
+	const creators = useMemo(() => {
+		const creatorMap = new Map();
+
+		vehicles.forEach((vehicle) => {
+			if (vehicle.createdBy?._id) {
+				creatorMap.set(vehicle.createdBy._id, vehicle.createdBy);
+			}
+		});
+
+		return Array.from(creatorMap.values());
+	}, [vehicles]);
+
+	// Get unique vehicle years
+	const vehicleYears = useMemo(() => {
+		return [...new Set(vehicles.map((vehicle) => vehicle.vehicleYear))]
+			.filter(Boolean)
+			.sort((a, b) => b - a);
+	}, [vehicles]);
+
+	// Filter vehicles on client side
+	const filteredVehicles = useMemo(() => {
+		return vehicles.filter((vehicle) => {
+			const searchValue = search.trim().toLowerCase();
+
+			const matchesSearch =
+				!searchValue ||
+				vehicle.vehicleName?.toLowerCase().includes(searchValue) ||
+				vehicle.vehicleModel?.toLowerCase().includes(searchValue) ||
+				vehicle.registrationNumber?.toLowerCase().includes(searchValue) ||
+				vehicle.chassisNumber?.toLowerCase().includes(searchValue);
+
+			const matchesStatus = !status || vehicle.status === status;
+
+			const matchesVehicleType =
+				!vehicleType || vehicle.vehicleType === vehicleType;
+
+			const matchesActive = active === "" || String(vehicle.active) === active;
+
+			const matchesCreatedBy =
+				!createdBy || vehicle.createdBy?._id === createdBy;
+
+			const matchesVehicleYear =
+				!vehicleYear || String(vehicle.vehicleYear) === vehicleYear;
+
+			return (
+				matchesSearch &&
+				matchesStatus &&
+				matchesVehicleType &&
+				matchesActive &&
+				matchesCreatedBy &&
+				matchesVehicleYear
+			);
+		});
+	}, [vehicles, search, status, vehicleType, active, createdBy, vehicleYear]);
+
+	// Pagination
+	const totalVehicles = filteredVehicles.length;
+	const totalPages = Math.ceil(totalVehicles / itemsPerPage);
+
+	const paginatedVehicles = useMemo(() => {
+		const startIndex = (currentPage - 1) * itemsPerPage;
+		const endIndex = startIndex + itemsPerPage;
+
+		return filteredVehicles.slice(startIndex, endIndex);
+	}, [filteredVehicles, currentPage]);
+
+	// Reset page when filters change
+	useEffect(() => {
+		setCurrentPage(1);
+	}, [search, status, vehicleType, active, createdBy, vehicleYear]);
 
 	// Clear filters
 	const handleClearFilters = () => {
@@ -85,48 +130,9 @@ const Vehicles = () => {
 		setStatus("");
 		setVehicleType("");
 		setActive("");
-		setTimeout(() => {
-			handleSearch(1);
-		}, 0);
-	};
-
-	// Activate / deactivate vehicle
-	const handleStatusChange = async () => {
-		if (!selectedVehicle) return;
-		try {
-			setStatusLoading(true);
-			const data = await activateDeactivateVehicle(selectedVehicle._id);
-			toast.success(data.message || "Vehicle status updated successfully");
-			setSelectedVehicle(null);
-			await handleSearch(pagination.currentPage);
-		} catch (error) {
-			console.error("Vehicle status update error:", error);
-			const message =
-				error.response?.data?.message || "Failed to update vehicle status";
-			toast.error(message);
-		} finally {
-			setStatusLoading(false);
-		}
-	};
-
-	// Delete vehicle
-	const handleDeleteVehicle = async () => {
-		if (!selectedVehicle) return;
-		try {
-			setDeleteLoading(true);
-			const data = await deleteVehicle(selectedVehicle._id);
-			toast.success(data.message || "Vehicle deleted successfully");
-			setSelectedVehicle(null);
-			setShowDeleteModal(false);
-			await handleSearch(pagination.currentPage);
-		} catch (error) {
-			console.error("Delete vehicle error:", error);
-			const message =
-				error.response?.data?.message || "Failed to delete vehicle";
-			toast.error(message);
-		} finally {
-			setDeleteLoading(false);
-		}
+		setCreatedBy("");
+		setVehicleYear("");
+		setCurrentPage(1);
 	};
 
 	// Loading
@@ -151,6 +157,7 @@ const Vehicles = () => {
 						Manage and monitor all vehicles in the system.
 					</p>
 				</div>
+
 				<Link
 					to={`${basePath}/add`}
 					className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
@@ -162,41 +169,80 @@ const Vehicles = () => {
 
 			{/* SEARCH + FILTERS */}
 			<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5">
-				{/* Filter header */}
-				<div className="flex items-center gap-2 mb-4">
-					<div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
-						<SlidersHorizontal className="w-4 h-4 text-violet-600" />
-					</div>
-					<div>
-						<h2 className="text-sm font-semibold text-gray-900">
-							Search & Filters
-						</h2>
-						<p className="text-xs text-gray-500">
-							Find vehicles using search and filters.
-						</p>
-					</div>
-				</div>
+				<div className="flex flex-col gap-4">
+					{/* Header */}
+					<div className="flex items-center justify-between">
+						<div className="flex items-center gap-2">
+							<div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+								<SlidersHorizontal className="w-4 h-4 text-violet-600" />
+							</div>
 
-				<div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+							<div>
+								<h2 className="text-sm font-semibold text-gray-900">
+									Search & Filters
+								</h2>
+
+								<p className="text-xs text-gray-500">
+									Find vehicles using search and filters.
+								</p>
+							</div>
+						</div>
+
+						<button
+							onClick={handleClearFilters}
+							className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-violet-600 transition cursor-pointer"
+						>
+							<RotateCcw className="w-3.5 h-3.5" />
+							Clear filters
+						</button>
+					</div>
+
 					{/* Search */}
-					<div className="relative lg:col-span-5">
+					<div className="relative">
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+
 						<input
 							type="text"
 							value={search}
 							onChange={(e) => setSearch(e.target.value)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter") {
-									handleSearch(1);
-								}
-							}}
-							placeholder="Search name, model, registration or chassis..."
+							placeholder="Search by vehicle name, model, registration or chassis number..."
 							className="w-full h-11 pl-10 pr-4 border border-gray-300 rounded-lg text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 						/>
 					</div>
 
-					{/* Status */}
-					<div className="lg:col-span-2">
+					{/* Filters */}
+					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+						{/* Created By */}
+						<select
+							value={createdBy}
+							onChange={(e) => setCreatedBy(e.target.value)}
+							className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm text-gray-700 outline-none bg-white focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+						>
+							<option value="">All Creators</option>
+
+							{creators.map((creator) => (
+								<option key={creator._id} value={creator._id}>
+									{creator.name}
+								</option>
+							))}
+						</select>
+
+						{/* Vehicle Year */}
+						<select
+							value={vehicleYear}
+							onChange={(e) => setVehicleYear(e.target.value)}
+							className="w-full h-11 px-3 border border-gray-300 rounded-lg text-sm text-gray-700 outline-none bg-white focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+						>
+							<option value="">All Years</option>
+
+							{vehicleYears.map((year) => (
+								<option key={year} value={year}>
+									{year}
+								</option>
+							))}
+						</select>
+
+						{/* Status */}
 						<select
 							value={status}
 							onChange={(e) => setStatus(e.target.value)}
@@ -206,10 +252,8 @@ const Vehicles = () => {
 							<option value="available">Available</option>
 							<option value="assigned">Assigned</option>
 						</select>
-					</div>
 
-					{/* Vehicle Type */}
-					<div className="lg:col-span-2">
+						{/* Vehicle Type */}
 						<select
 							value={vehicleType}
 							onChange={(e) => setVehicleType(e.target.value)}
@@ -219,10 +263,8 @@ const Vehicles = () => {
 							<option value="LMV">LMV</option>
 							<option value="HMV">HMV</option>
 						</select>
-					</div>
 
-					{/* Activity */}
-					<div className="lg:col-span-2">
+						{/* Activity */}
 						<select
 							value={active}
 							onChange={(e) => setActive(e.target.value)}
@@ -234,37 +276,19 @@ const Vehicles = () => {
 						</select>
 					</div>
 
-					{/* Search Button */}
-					<div className="lg:col-span-1">
-						<button
-							onClick={() => handleSearch(1)}
-							className="w-full h-11 bg-violet-600 hover:bg-violet-700 text-white rounded-lg text-sm font-medium transition cursor-pointer"
-						>
-							Search
-						</button>
+					{/* Results */}
+					<div className="pt-3 border-t border-gray-100">
+						<p className="text-xs text-gray-500">
+							{totalVehicles} vehicle
+							{totalVehicles !== 1 ? "s" : ""} found
+						</p>
 					</div>
-				</div>
-
-				{/* Bottom filter actions */}
-				<div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
-					<p className="text-xs text-gray-500">
-						{pagination.totalVehicles} vehicle
-						{pagination.totalVehicles !== 1 ? "s" : ""} found
-					</p>
-
-					<button
-						onClick={handleClearFilters}
-						className="inline-flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-violet-600 transition cursor-pointer"
-					>
-						<RotateCcw className="w-3.5 h-3.5" />
-						Clear filters
-					</button>
 				</div>
 			</div>
 
 			{/* VEHICLE TABLE */}
 			<div className="bg-white border border-gray-200 rounded-2xl shadow-sm overflow-hidden">
-				{vehicles.length > 0 ? (
+				{paginatedVehicles.length > 0 ? (
 					<>
 						<div className="overflow-x-auto">
 							<table className="w-full text-sm">
@@ -273,18 +297,23 @@ const Vehicles = () => {
 										<th className="text-left px-6 py-4 font-semibold text-gray-600">
 											Vehicle
 										</th>
+
 										<th className="text-left px-6 py-4 font-semibold text-gray-600">
 											Registration
 										</th>
+
 										<th className="text-left px-6 py-4 font-semibold text-gray-600">
 											Type
 										</th>
+
 										<th className="text-left px-6 py-4 font-semibold text-gray-600">
 											Status
 										</th>
+
 										<th className="text-left px-6 py-4 font-semibold text-gray-600">
 											Driver
 										</th>
+
 										<th className="text-right px-6 py-4 font-semibold text-gray-600">
 											Action
 										</th>
@@ -292,7 +321,7 @@ const Vehicles = () => {
 								</thead>
 
 								<tbody className="divide-y divide-gray-100">
-									{vehicles.map((vehicle) => (
+									{paginatedVehicles.map((vehicle) => (
 										<tr
 											key={vehicle._id}
 											className="hover:bg-gray-50 transition"
@@ -322,25 +351,21 @@ const Vehicles = () => {
 											</td>
 
 											{/* Type */}
-											<td className="px-6 py-4">
-												<span className="text-gray-700">
-													{vehicle.vehicleType}
-												</span>
+											<td className="px-6 py-4 text-gray-700">
+												{vehicle.vehicleType}
 											</td>
 
 											{/* Status */}
 											<td className="px-6 py-4">
-												<div className="flex flex-col items-start gap-1">
-													<span
-														className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
-															vehicle.status === "assigned"
-																? "bg-blue-100 text-blue-700"
-																: "bg-green-100 text-green-700"
-														}`}
-													>
-														{vehicle.status}
-													</span>
-												</div>
+												<span
+													className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${
+														vehicle.status === "assigned"
+															? "bg-blue-100 text-blue-700"
+															: "bg-green-100 text-green-700"
+													}`}
+												>
+													{vehicle.status}
+												</span>
 											</td>
 
 											{/* Driver */}
@@ -362,69 +387,13 @@ const Vehicles = () => {
 
 											{/* Action */}
 											<td className="px-6 py-4 text-right">
-												<div className="inline-flex items-center gap-2">
-													<Link
-														to={`${basePath}/${vehicle._id}`}
-														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
-													>
-														<Eye className="w-4 h-4" />
-														View
-													</Link>
-
-													<Link
-														to={`${basePath}/${vehicle._id}/edit`}
-														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-blue-600 hover:bg-blue-50 transition"
-													>
-														Edit
-													</Link>
-
-													<button
-														onClick={() => {
-															setSelectedVehicle(vehicle);
-															setShowDeleteModal(true);
-														}}
-														disabled={vehicle.status === "assigned"}
-														title={
-															vehicle.status === "assigned"
-																? "Unassign the vehicle before deleting it"
-																: "Delete vehicle"
-														}
-														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-red-600 hover:bg-red-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
-													>
-														Delete
-													</button>
-
-													<button
-														onClick={() => setSelectedVehicle(vehicle)}
-														disabled={
-															vehicle.active && vehicle.status === "assigned"
-														}
-														title={
-															vehicle.active && vehicle.status === "assigned"
-																? "Unassign the vehicle before deactivating it"
-																: vehicle.active
-																	? "Deactivate vehicle"
-																	: "Activate vehicle"
-														}
-														className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition ${
-															vehicle.active
-																? "text-red-600 hover:bg-red-50"
-																: "text-green-600 hover:bg-green-50"
-														} disabled:opacity-40 disabled:cursor-not-allowed`}
-													>
-														{vehicle.active ? (
-															<>
-																<PowerOff className="w-4 h-4" />
-																Deactivate
-															</>
-														) : (
-															<>
-																<Power className="w-4 h-4" />
-																Activate
-															</>
-														)}
-													</button>
-												</div>
+												<Link
+													to={`${basePath}/${vehicle._id}`}
+													className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
+												>
+													<Eye className="w-4 h-4" />
+													View
+												</Link>
 											</td>
 										</tr>
 									))}
@@ -433,35 +402,39 @@ const Vehicles = () => {
 						</div>
 
 						{/* PAGINATION */}
-						{pagination.totalPages > 0 && (
+						{totalPages > 0 && (
 							<div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-200">
 								<p className="text-sm text-gray-500">
 									Showing page{" "}
 									<span className="font-medium text-gray-700">
-										{pagination.currentPage}
+										{currentPage}
 									</span>{" "}
 									of{" "}
 									<span className="font-medium text-gray-700">
-										{pagination.totalPages}
+										{totalPages}
 									</span>
 								</p>
 
 								<div className="flex items-center gap-2">
 									<button
-										onClick={() => handleSearch(pagination.currentPage - 1)}
-										disabled={pagination.currentPage === 1}
+										onClick={() =>
+											setCurrentPage((page) => Math.max(page - 1, 1))
+										}
+										disabled={currentPage === 1}
 										className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
 									>
 										Previous
 									</button>
 
 									<div className="min-w-10 h-9 flex items-center justify-center px-3 bg-violet-600 text-white rounded-lg text-sm font-medium">
-										{pagination.currentPage}
+										{currentPage}
 									</div>
 
 									<button
-										onClick={() => handleSearch(pagination.currentPage + 1)}
-										disabled={pagination.currentPage === pagination.totalPages}
+										onClick={() =>
+											setCurrentPage((page) => Math.min(page + 1, totalPages))
+										}
+										disabled={currentPage === totalPages}
 										className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
 									>
 										Next
@@ -485,160 +458,6 @@ const Vehicles = () => {
 					</div>
 				)}
 			</div>
-
-			{/* STATUS CONFIRMATION MODAL */}
-			{selectedVehicle && !showDeleteModal && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-					<div
-						className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-						onClick={() => !statusLoading && setSelectedVehicle(null)}
-					/>
-
-					<div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
-						<button
-							onClick={() => !statusLoading && setSelectedVehicle(null)}
-							disabled={statusLoading}
-							className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-40"
-						>
-							<X className="w-5 h-5" />
-						</button>
-
-						<div
-							className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-								selectedVehicle.active ? "bg-red-50" : "bg-green-50"
-							}`}
-						>
-							{selectedVehicle.active ? (
-								<PowerOff className="w-6 h-6 text-red-600" />
-							) : (
-								<Power className="w-6 h-6 text-green-600" />
-							)}
-						</div>
-
-						<h2 className="text-lg font-semibold text-gray-900 mt-4">
-							{selectedVehicle.active
-								? "Deactivate vehicle?"
-								: "Activate vehicle?"}
-						</h2>
-
-						<p className="text-sm text-gray-500 mt-2 leading-6">
-							Are you sure you want to{" "}
-							{selectedVehicle.active ? "deactivate" : "activate"}{" "}
-							<span className="font-semibold text-gray-700">
-								{selectedVehicle.vehicleName}
-							</span>
-							?
-						</p>
-
-						{selectedVehicle.active &&
-							selectedVehicle.status === "assigned" && (
-								<div className="mt-4 p-3 rounded-lg bg-amber-50 border border-amber-200 text-sm text-amber-700">
-									This vehicle is currently assigned to a driver. Unassign it
-									before deactivating.
-								</div>
-							)}
-
-						<div className="flex justify-end gap-3 mt-6">
-							<button
-								onClick={() => setSelectedVehicle(null)}
-								disabled={statusLoading}
-								className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
-							>
-								Cancel
-							</button>
-
-							<button
-								onClick={handleStatusChange}
-								disabled={
-									statusLoading ||
-									(selectedVehicle.active &&
-										selectedVehicle.status === "assigned")
-								}
-								className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-white transition disabled:opacity-50 disabled:cursor-not-allowed ${
-									selectedVehicle.active
-										? "bg-red-600 hover:bg-red-700"
-										: "bg-green-600 hover:bg-green-700"
-								}`}
-							>
-								{statusLoading ? (
-									<>
-										<div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-										Updating...
-									</>
-								) : selectedVehicle.active ? (
-									"Deactivate"
-								) : (
-									"Activate"
-								)}
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
-
-			{/* DELETE CONFIRMATION MODAL */}
-			{showDeleteModal && selectedVehicle && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-					<div
-						className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-						onClick={() => !deleteLoading && setShowDeleteModal(false)}
-					/>
-
-					<div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl p-6">
-						<button
-							onClick={() => !deleteLoading && setShowDeleteModal(false)}
-							disabled={deleteLoading}
-							className="absolute top-4 right-4 p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition disabled:opacity-40"
-						>
-							<X className="w-5 h-5" />
-						</button>
-
-						<div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
-							<CircleAlert className="w-6 h-6 text-red-600" />
-						</div>
-
-						<h2 className="text-lg font-semibold text-gray-900 mt-4">
-							Delete vehicle?
-						</h2>
-
-						<p className="text-sm text-gray-500 mt-2 leading-6">
-							Are you sure you want to delete{" "}
-							<span className="font-semibold text-gray-700">
-								{selectedVehicle.vehicleName}
-							</span>
-							? This action cannot be undone.
-						</p>
-
-						<div className="flex justify-end gap-3 mt-6">
-							<button
-								onClick={() => {
-									setShowDeleteModal(false);
-									setSelectedVehicle(null);
-								}}
-								disabled={deleteLoading}
-								className="px-4 py-2.5 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-50"
-							>
-								Cancel
-							</button>
-
-							<button
-								onClick={handleDeleteVehicle}
-								disabled={deleteLoading}
-								className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition disabled:opacity-50"
-							>
-								{deleteLoading ? (
-									<>
-										<div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-										Deleting...
-									</>
-								) : (
-									"Delete Vehicle"
-								)}
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 };
