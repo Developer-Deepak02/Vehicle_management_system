@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Truck, Upload, X, ImagePlus } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { ArrowLeft, Truck, X, ImagePlus } from "lucide-react";
 import { createVehicle } from "../../services/vehicleService";
 import toast from "react-hot-toast";
 
 const AddVehicle = () => {
+	const location = useLocation();
 	const navigate = useNavigate();
+	const isManager = location.pathname.startsWith("/manager");
+	const basePath = isManager ? "/manager/vehicles" : "/admin/vehicles";
 	const [vehicleName, setVehicleName] = useState("");
 	const [vehicleModel, setVehicleModel] = useState("");
 	const [vehicleYear, setVehicleYear] = useState("");
@@ -54,7 +57,7 @@ const AddVehicle = () => {
 			const data = await createVehicle(formData);
 			console.log("Vehicle created:", data);
 			toast.success("Vehicle added successfully");
-			navigate("/admin/vehicles");
+			navigate(basePath);
 		} catch (error) {
 			console.error("Create vehicle error:", error);
 			const message =
@@ -70,7 +73,7 @@ const AddVehicle = () => {
 			{/* Header */}
 			<div className="flex items-center gap-4">
 				<Link
-					to="/admin/vehicles"
+					to={basePath}
 					className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
 				>
 					<ArrowLeft className="w-5 h-5" />
@@ -113,9 +116,7 @@ const AddVehicle = () => {
 								className="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 							/>
 						</div>
-
 						{/* Vehicle Model */}
-
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Vehicle Model
@@ -129,9 +130,7 @@ const AddVehicle = () => {
 								className="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 							/>
 						</div>
-
 						{/* Vehicle Year */}
-
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Vehicle Year
@@ -147,9 +146,7 @@ const AddVehicle = () => {
 								className="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 							/>
 						</div>
-
 						{/* Vehicle Type */}
-
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Vehicle Type
@@ -165,9 +162,7 @@ const AddVehicle = () => {
 								<option value="HMV">HMV</option>
 							</select>
 						</div>
-
 						{/* Registration Number */}
-
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Registration Number
@@ -183,9 +178,7 @@ const AddVehicle = () => {
 								className="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm uppercase outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 							/>
 						</div>
-
 						{/* Chassis Number */}
-
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Chassis Number
@@ -200,9 +193,7 @@ const AddVehicle = () => {
 							/>
 						</div>
 					</div>
-
 					{/* Description */}
-
 					<div className="mt-5">
 						<label className="block text-sm font-medium text-gray-700 mb-2">
 							Vehicle Description
@@ -217,9 +208,7 @@ const AddVehicle = () => {
 						/>
 					</div>
 				</div>
-
 				{/* Vehicle Photos */}
-
 				<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
 					<div className="flex items-center justify-between mb-5">
 						<div>
@@ -255,9 +244,7 @@ const AddVehicle = () => {
 								/>
 							</label>
 						)}
-
 						{/* Selected photos */}
-
 						{photos.map((photo, index) => (
 							<div
 								key={`${photo.name}-${index}`}
@@ -280,11 +267,10 @@ const AddVehicle = () => {
 						))}
 					</div>
 				</div>
-
 				{/* form action */}
 				<div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
 					<Link
-						to="/admin/vehicles"
+						to={basePath}
 						className="w-full sm:w-auto px-5 py-2.5 text-center border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
 					>
 						Cancel

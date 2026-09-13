@@ -17,9 +17,12 @@ import {
 	activateDeactivateVehicle,
 	deleteVehicle,
 } from "../../services/vehicleService";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Vehicles = () => {
+	const location = useLocation();
+	const isManager = location.pathname.startsWith("/manager");
+	const basePath = isManager ? "/manager/vehicles" : "/admin/vehicles";
 	const [vehicles, setVehicles] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [search, setSearch] = useState("");
@@ -149,7 +152,7 @@ const Vehicles = () => {
 					</p>
 				</div>
 				<Link
-					to="/admin/vehicles/add"
+					to={`${basePath}/add`}
 					className="inline-flex items-center justify-center gap-2 bg-violet-600 hover:bg-violet-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium transition"
 				>
 					<Plus className="w-4 h-4" />
@@ -361,7 +364,7 @@ const Vehicles = () => {
 											<td className="px-6 py-4 text-right">
 												<div className="inline-flex items-center gap-2">
 													<Link
-														to={`/admin/vehicles/${vehicle._id}`}
+														to={`${basePath}/${vehicle._id}`}
 														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 transition"
 													>
 														<Eye className="w-4 h-4" />
@@ -369,7 +372,7 @@ const Vehicles = () => {
 													</Link>
 
 													<Link
-														to={`/admin/vehicles/${vehicle._id}/edit`}
+														to={`${basePath}/${vehicle._id}/edit`}
 														className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-blue-600 hover:bg-blue-50 transition"
 													>
 														Edit

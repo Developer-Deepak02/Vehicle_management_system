@@ -65,16 +65,27 @@ function App() {
 						<Route path="/admin/managers" element={<Managers />} />
 						<Route path="/admin/managers/add" element={<AddManager />} />
 						<Route path="/admin/managers/:id/edit" element={<EditManager />} />
+					</Route>
+				</Route>
+
+				{/* Driver and Vehicle management routes - Admin + Manager */}
+				<Route element={<ProtectedRoute allowedRoles={["admin", "manager"]} />}>
+					<Route element={<MainLayout />}>
+						{/* Admin vehicle routes */}
 						<Route path="/admin/vehicles" element={<Vehicles />} />
 						<Route path="/admin/vehicles/add" element={<AddVehicle />} />
 						<Route path="/admin/vehicles/:id" element={<VehicleDetails />} />
 						<Route path="/admin/vehicles/:id/edit" element={<EditVehicle />} />
-					</Route>
-				</Route>
 
-				{/* Driver management routes - Admin + Manager */}
-				<Route element={<ProtectedRoute allowedRoles={["admin", "manager"]} />}>
-					<Route element={<MainLayout />}>
+						{/* Manager vehicle routes */}
+						<Route path="/manager/vehicles" element={<Vehicles />} />
+						<Route path="/manager/vehicles/add" element={<AddVehicle />} />
+						<Route path="/manager/vehicles/:id" element={<VehicleDetails />} />
+						<Route
+							path="/manager/vehicles/:id/edit"
+							element={<EditVehicle />}
+						/>
+
 						{/* Admin driver routes */}
 						<Route path="/admin/drivers" element={<Drivers />} />
 						<Route path="/admin/drivers/add" element={<AddDriver />} />
@@ -88,6 +99,7 @@ function App() {
 						<Route path="/manager/drivers/:id" element={<DriverDetails />} />
 					</Route>
 				</Route>
+
 				{/* Manager routes */}
 				<Route element={<ProtectedRoute allowedRoles={["manager"]} />}>
 					<Route element={<MainLayout />}>

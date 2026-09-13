@@ -1,12 +1,15 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { ArrowLeft, Truck, Loader2, ImagePlus, X } from "lucide-react";
 import { getVehicle, updateVehicle } from "../../services/vehicleService";
 
 const EditVehicle = () => {
 	const { id } = useParams();
+	const location = useLocation();
 	const navigate = useNavigate();
+	const isManager = location.pathname.startsWith("/manager");
+	const basePath = isManager ? "/manager/vehicles" : "/admin/vehicles";
 	const [loading, setLoading] = useState(true);
 	const [updating, setUpdating] = useState(false);
 	const [vehicleName, setVehicleName] = useState("");
@@ -18,6 +21,7 @@ const EditVehicle = () => {
 	const [vehicleDescription, setVehicleDescription] = useState("");
 	const [existingPhotos, setExistingPhotos] = useState([]);
 	const [newPhotos, setNewPhotos] = useState([]);
+
 	useEffect(() => {
 		const fetchVehicle = async () => {
 			try {
@@ -42,6 +46,7 @@ const EditVehicle = () => {
 		};
 		fetchVehicle();
 	}, [id]);
+
 	const handlePhotoChange = (e) => {
 		const selectedFiles = Array.from(e.target.files);
 		const totalPhotos = existingPhotos.length + newPhotos.length;
@@ -52,6 +57,7 @@ const EditVehicle = () => {
 		setNewPhotos((previousPhotos) => [...previousPhotos, ...selectedFiles]);
 		e.target.value = "";
 	};
+
 	const removeExistingPhoto = (indexToRemove) => {
 		if (existingPhotos.length + newPhotos.length <= 1) {
 			toast.error("At least one vehicle photo is required");
@@ -61,6 +67,7 @@ const EditVehicle = () => {
 			previousPhotos.filter((_, index) => index !== indexToRemove),
 		);
 	};
+
 	const removeNewPhoto = (indexToRemove) => {
 		if (existingPhotos.length + newPhotos.length <= 1) {
 			toast.error("At least one vehicle photo is required");
@@ -70,6 +77,7 @@ const EditVehicle = () => {
 			previousPhotos.filter((_, index) => index !== indexToRemove),
 		);
 	};
+
 	const handleSubmit = async (e) => {
 		e.preventDefault();
 		const totalPhotos = existingPhotos.length + newPhotos.length;
@@ -92,7 +100,7 @@ const EditVehicle = () => {
 			const data = await updateVehicle(id, formData);
 			console.log("Vehicle updated:", data);
 			toast.success("Vehicle updated successfully");
-			navigate(`/admin/vehicles/${id}`);
+			navigate(`${basePath}/${id}`);
 		} catch (error) {
 			console.error("Update vehicle error:", error);
 			const message =
@@ -102,6 +110,7 @@ const EditVehicle = () => {
 			setUpdating(false);
 		}
 	};
+
 	if (loading) {
 		return (
 			<div className="flex items-center justify-center min-h-96">
@@ -112,12 +121,14 @@ const EditVehicle = () => {
 			</div>
 		);
 	}
+
 	const totalPhotos = existingPhotos.length + newPhotos.length;
+
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center gap-4">
 				<Link
-					to={`/admin/vehicles/${id}`}
+					to={`${basePath}/${id}`}
 					className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
 				>
 					<ArrowLeft className="w-5 h-5" />
@@ -129,6 +140,7 @@ const EditVehicle = () => {
 					</p>
 				</div>
 			</div>
+
 			<form onSubmit={handleSubmit} className="space-y-6">
 				<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
 					<div className="flex items-center gap-3 mb-6">
@@ -144,6 +156,7 @@ const EditVehicle = () => {
 							</p>
 						</div>
 					</div>
+
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
@@ -156,6 +169,7 @@ const EditVehicle = () => {
 								className="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 							/>
 						</div>
+
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Vehicle Model
@@ -167,6 +181,7 @@ const EditVehicle = () => {
 								className="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 							/>
 						</div>
+
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Vehicle Year
@@ -178,6 +193,7 @@ const EditVehicle = () => {
 								className="w-full h-11 px-4 border border-gray-300 rounded-lg text-sm outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
 							/>
 						</div>
+
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Vehicle Type
@@ -192,6 +208,7 @@ const EditVehicle = () => {
 								<option value="HMV">HMV</option>
 							</select>
 						</div>
+
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Registration Number
@@ -206,6 +223,7 @@ const EditVehicle = () => {
 								Registration number cannot be changed.
 							</p>
 						</div>
+
 						<div>
 							<label className="block text-sm font-medium text-gray-700 mb-2">
 								Chassis Number
@@ -221,6 +239,7 @@ const EditVehicle = () => {
 							</p>
 						</div>
 					</div>
+
 					<div className="mt-5">
 						<label className="block text-sm font-medium text-gray-700 mb-2">
 							Vehicle Description
@@ -233,6 +252,7 @@ const EditVehicle = () => {
 						/>
 					</div>
 				</div>
+
 				<div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6">
 					<div className="flex items-center justify-between mb-5">
 						<div>
@@ -248,6 +268,7 @@ const EditVehicle = () => {
 							{totalPhotos}/5
 						</span>
 					</div>
+
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
 						{totalPhotos < 5 && (
 							<label className="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-violet-400 hover:bg-violet-50/50 transition cursor-pointer flex flex-col items-center justify-center">
@@ -267,6 +288,7 @@ const EditVehicle = () => {
 								/>
 							</label>
 						)}
+
 						{existingPhotos.map((photo, index) => (
 							<div
 								key={`existing-${index}`}
@@ -289,6 +311,7 @@ const EditVehicle = () => {
 								</div>
 							</div>
 						))}
+
 						{newPhotos.map((photo, index) => (
 							<div
 								key={`new-${photo.name}-${index}`}
@@ -313,13 +336,15 @@ const EditVehicle = () => {
 						))}
 					</div>
 				</div>
+
 				<div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
 					<Link
-						to={`/admin/vehicles/${id}`}
+						to={`${basePath}/${id}`}
 						className="w-full sm:w-auto px-5 py-2.5 text-center border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
 					>
 						Cancel
 					</Link>
+
 					<button
 						type="submit"
 						disabled={updating}

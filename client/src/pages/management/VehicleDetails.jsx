@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getAvailableDrivers } from "../../services/userService";
 import {
@@ -25,6 +25,10 @@ import {
 
 const VehicleDetails = () => {
 	const { id } = useParams();
+	const location = useLocation();
+	const isManager = location.pathname.startsWith("/manager");
+	const basePath = isManager ? "/manager/vehicles" : "/admin/vehicles";
+	const driverBasePath = isManager ? "/manager/drivers" : "/admin/drivers";
 	const [vehicle, setVehicle] = useState(null);
 	const [loading, setLoading] = useState(true);
 	const [showAssignModal, setShowAssignModal] = useState(false);
@@ -154,7 +158,7 @@ const VehicleDetails = () => {
 				<Truck className="w-12 h-12 text-gray-300" />
 				<p className="text-gray-500 mt-3">Vehicle not found.</p>
 				<Link
-					to="/admin/vehicles"
+					to={basePath}
 					className="mt-4 text-sm font-medium text-violet-600 hover:text-violet-700"
 				>
 					Back to Vehicles
@@ -169,7 +173,7 @@ const VehicleDetails = () => {
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-4">
 					<Link
-						to="/admin/vehicles"
+						to={basePath}
 						className="w-10 h-10 flex items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
 					>
 						<ArrowLeft className="w-5 h-5" />
@@ -185,7 +189,7 @@ const VehicleDetails = () => {
 				</div>
 				<div className="flex items-center gap-2">
 					<Link
-						to={`/admin/vehicles/${vehicle._id}/edit`}
+						to={`${basePath}/${vehicle._id}/edit`}
 						className="flex items-center gap-2 px-4 py-2.5 border border-gray-300 bg-white text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
 					>
 						<Edit className="w-4 h-4" />
@@ -317,7 +321,7 @@ const VehicleDetails = () => {
 							</div>
 							<div>
 								<Link
-									to={`/admin/drivers/${vehicle.driverAssigned._id}`}
+									to={`${driverBasePath}/${vehicle.driverAssigned._id}`}
 									className="font-semibold text-violet-600 hover:text-violet-700 hover:underline"
 								>
 									{vehicle.driverAssigned.name}
