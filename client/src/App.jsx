@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -37,6 +37,9 @@ function App() {
 				}}
 			/>
 			<Routes>
+				{/* Default route: open login page */}
+				<Route path="/" element={<Navigate to="/login" replace />} />
+
 				{/* Public routes */}
 				<Route path="/login" element={<Login />} />
 				<Route path="/register" element={<Register />} />
@@ -114,6 +117,9 @@ function App() {
 						<Route path="/driver/my-vehicle" element={<MyVehicle />} />
 					</Route>
 				</Route>
+
+				{/* Catch-all: unknown URLs go to login*/}
+				<Route path="*" element={<Navigate to="/login" replace />} />
 			</Routes>
 		</BrowserRouter>
 	);
